@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { QaTemplateButton } from "@/components/ev-monitor/qa-template-button";
 import {
   Activity,
   AlertTriangle,
@@ -37,7 +38,8 @@ export default function DashboardOverview() {
           </p>
         </div>
         <div className="flex gap-3">
-          <Link href="/dashboard/ev-monitor">
+          <QaTemplateButton />
+          <Link href="/dashboard/ev-monitor" className="hidden sm:block">
             <Button variant="outline" className="rounded-none font-bold uppercase tracking-widest text-xs h-10 px-4 gap-2 border-black/20 hover:bg-black/5">
               <Battery className="h-4 w-4" />
               Live Monitor
