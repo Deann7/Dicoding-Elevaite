@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+import { createClient } from "@/utils/supabase/server";
+import { cookies } from "next/headers";
 
 export async function POST(req: NextRequest) {
   try {
+    const cookieStore = await cookies();
+    const supabase = createClient(cookieStore);
+    
     const body = await req.json();
     const { pallet_id } = body;
 
@@ -26,36 +25,48 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Pallet not found" }, { status: 404 });
     }
 
-    // Use OpenAI if API key is available, otherwise use rule-based fallback
-    const openaiApiKey = process.env.OPENAI_API_KEY;
+    // Use Azure OpenAI if API keys are available, otherwise use rule-based fallback
+    const azureEndpoint = process.env.AZURE_COPILOT_ENDPOINT;
+    const azureApiKey = process.env.AZURE_COPILOT_INTELLIGENCE_KEY;
+    const deploymentName = process.env.AZURE_COPILOT_DEPLOYMENT || "gpt-4o-mini"; // Ganti jika nama deployment Anda berbeda
 
-    if (openaiApiKey) {
-      const openaiRes = await fetch("https://api.openai.com/v1/chat/completions", {
+    if (azureEndpoint && azureApiKey) {
+      const baseUrl = azureEndpoint.replace(/\/$/, "");
+      const url = `${baseUrl}/openai/deployments/${deploymentName}/chat/completions?api-version=2024-02-15-preview`;
+
+      const aiRes = await fetch(url, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${openaiApiKey}`,
+          "api-key": azureApiKey,
         },
         body: JSON.stringify({
-          model: "gpt-4o-mini",
           messages: [
             {
               role: "system",
               content:
-                "You are an expert EV Battery Safety Officer generating formal incident reports for a manufacturing facility. Be concise, professional, and always include safety recommendations.",
+                "You are an expert EV Battery Safety Officer generating formal incident reports for a manufacturing facility. Be concise, professional, and always include safety recommendations. Use markdown formatting to make the report look clean.",
             },
             {
               role: "user",
-              content: `Generate a formal incident report for the following EV battery pallet anomaly:\n\nPallet Code: ${pallet.pallet_code}\nLocation: ${pallet.location}\nVendor: ${pallet.vendor}\nCell Count: ${pallet.cell_count}\nCurrent Temperature: ${pallet.temperature}°C\nHumidity: ${pallet.humidity ?? "N/A"}%\nStatus: ${pallet.status}\nAlert Reason: ${pallet.alert_reason}\nTimestamp: ${pallet.last_updated}\n\nThe report must include: 1) Incident Summary, 2) Risk Assessment, 3) Immediate Actions Required, 4) Recommended Next Steps.`,
+              content: `Generate a formal incident report for the following EV battery pallet anomaly:\n\nPallet Code: ${pallet.pallet_code}\nLocation: ${pallet.location}\nVendor: ${pallet.vendor_name || pallet.vendor}\nCell Count: ${pallet.cell_count}\nCurrent Temperature: ${pallet.temperature}°C\nHumidity: ${pallet.humidity ?? "N/A"}%\nStatus: ${pallet.status}\nAlert Reason: ${pallet.alert_reason}\nTimestamp: ${pallet.last_updated}\n\nThe report must include: 1) Incident Summary, 2) Risk Assessment, 3) Immediate Actions Required, 4) Recommended Next Steps.`,
             },
           ],
           temperature: 0.3,
-          max_tokens: 600,
+          max_tokens: 800,
         }),
       });
 
-      const openaiData = await openaiRes.json();
-      const report = openaiData.choices?.[0]?.message?.content;
+      if (!aiRes.ok) {
+        const errorText = await aiRes.text();
+        console.error("Azure OpenAI Error:", errorText);
+        // Jika API error (misal salah key/endpoint), gunakan fallback agar app tidak crash
+        const report = generateRuleBasedReport(pallet);
+        return NextResponse.json({ report, pallet, error_fallback: true });
+      }
+
+      const aiData = await aiRes.json();
+      const report = aiData.choices?.[0]?.message?.content;
       return NextResponse.json({ report, pallet });
     }
 

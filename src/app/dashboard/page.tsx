@@ -44,33 +44,42 @@ export default async function DashboardOverview() {
   const cookieStore = await cookies();
   const supabase = createClient(cookieStore);
 
-  // Fetch KPIs
+  // Get current user untuk multi-tenant filtering
+  const { data: { user } } = await supabase.auth.getUser();
+  const userId = user?.id;
+
+  // Fetch KPIs — hanya data milik user ini
   const { count: totalPallets } = await supabase
     .from("pallets")
-    .select("*", { count: "exact", head: true });
+    .select("*", { count: "exact", head: true })
+    .eq("user_id", userId!);
 
   const { count: quarantineCount } = await supabase
     .from("pallets")
     .select("*", { count: "exact", head: true })
-    .in("status", ["ON HOLD", "REJECT"]);
+    .in("status", ["ON HOLD", "REJECT"])
+    .eq("user_id", userId!);
 
   const { count: pendingQaCount } = await supabase
     .from("pallets")
     .select("*", { count: "exact", head: true })
-    .eq("status", "UNRELEASED");
+    .eq("status", "UNRELEASED")
+    .eq("user_id", userId!);
 
-  // Fetch Watchlist
+  // Fetch Watchlist — hanya data milik user ini
   const { data: watchlist } = await supabase
     .from("pallets")
     .select("*")
     .neq("status", "OK")
+    .eq("user_id", userId!)
     .order("temperature", { ascending: false })
     .limit(5);
 
-  // Fetch Recent Scans
+  // Fetch Recent Scans — hanya data milik user ini
   const { data: recentScans } = await supabase
     .from("qa_inspections")
     .select("*")
+    .eq("user_id", userId!)
     .order("created_at", { ascending: false })
     .limit(10);
 

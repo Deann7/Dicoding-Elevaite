@@ -195,9 +195,9 @@ export default function LogsPage() {
   }, [fetchLogs, supabase]);
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto h-full flex flex-col">
+    <div className="space-y-6 max-w-7xl mx-auto pb-10">
       {/* HEADER SECTION */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 shrink-0">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight uppercase">
             System Logs
@@ -219,7 +219,7 @@ export default function LogsPage() {
       </div>
 
       {/* FILTER & SEARCH BAR */}
-      <div className="flex items-center gap-4 shrink-0">
+      <div className="flex items-center gap-4">
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-black/50" />
           <Input
@@ -257,7 +257,7 @@ export default function LogsPage() {
       </div>
 
       {/* TABLE SECTION */}
-      <Card className="rounded-none border-black/20 shadow-none flex-1 flex flex-col overflow-hidden">
+      <Card className="rounded-none border-black/20 shadow-none">
         <CardHeader className="border-b border-black/10 py-3 bg-black/5 flex flex-row items-center justify-between">
           <CardTitle className="text-xs uppercase tracking-widest font-bold">
             Audit Trail Records
@@ -266,7 +266,7 @@ export default function LogsPage() {
             <RefreshCw className="h-4 w-4 animate-spin text-black/50" />
           )}
         </CardHeader>
-        <CardContent className="p-0 flex-1 overflow-auto">
+        <CardContent className="p-0">
           <Table>
             <TableHeader className="sticky top-0 bg-white z-10">
               <TableRow className="border-b border-black/20 hover:bg-transparent">
@@ -366,7 +366,7 @@ export default function LogsPage() {
       </Card>
 
       {/* PAGINATION (MOCK) */}
-      <div className="flex items-center justify-between shrink-0 mt-4">
+      <div className="flex items-center justify-between mt-4">
         <p className="text-xs font-medium text-black/50 uppercase tracking-widest">
           Showing 1-{Math.min(logs.length, 50)} of {logs.length} records
         </p>
