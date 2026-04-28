@@ -21,10 +21,59 @@ import {
   Package,
   Thermometer,
   Clock,
-  Battery
+  Battery,
 } from "lucide-react";
+import { createClient } from "@/utils/supabase/server";
+import { cookies } from "next/headers";
 
-export default function DashboardOverview() {
+function formatRelativeTime(dateString: string) {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+  if (diffInSeconds < 60) return `${diffInSeconds} secs ago`;
+  const diffInMinutes = Math.floor(diffInSeconds / 60);
+  if (diffInMinutes < 60) return `${diffInMinutes} mins ago`;
+  const diffInHours = Math.floor(diffInMinutes / 60);
+  if (diffInHours < 24) return `${diffInHours} hrs ago`;
+  const diffInDays = Math.floor(diffInHours / 24);
+  return `${diffInDays} days ago`;
+}
+
+export default async function DashboardOverview() {
+  const cookieStore = await cookies();
+  const supabase = createClient(cookieStore);
+
+  // Fetch KPIs
+  const { count: totalPallets } = await supabase
+    .from("pallets")
+    .select("*", { count: "exact", head: true });
+
+  const { count: quarantineCount } = await supabase
+    .from("pallets")
+    .select("*", { count: "exact", head: true })
+    .in("status", ["ON HOLD", "REJECT"]);
+
+  const { count: pendingQaCount } = await supabase
+    .from("pallets")
+    .select("*", { count: "exact", head: true })
+    .eq("status", "UNRELEASED");
+
+  // Fetch Watchlist
+  const { data: watchlist } = await supabase
+    .from("pallets")
+    .select("*")
+    .neq("status", "OK")
+    .order("temperature", { ascending: false })
+    .limit(5);
+
+  // Fetch Recent Scans
+  const { data: recentScans } = await supabase
+    .from("qa_inspections")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(10);
+
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
       {/* HEADER SECTION */}
@@ -37,10 +86,13 @@ export default function DashboardOverview() {
             Welcome back. Real-time EV battery telemetry and QA status.
           </p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex gap-3 max-md:flex-col">
           <QaTemplateButton />
           <Link href="/dashboard/ev-monitor" className="hidden sm:block">
-            <Button variant="outline" className="rounded-none font-bold uppercase tracking-widest text-xs h-10 px-4 gap-2 border-black/20 hover:bg-black/5">
+            <Button
+              variant="outline"
+              className="rounded-none font-bold uppercase tracking-widest text-xs h-10 px-4 gap-2 border-black/20 hover:bg-black/5"
+            >
               <Battery className="h-4 w-4" />
               Live Monitor
             </Button>
@@ -65,9 +117,11 @@ export default function DashboardOverview() {
             <Package className="h-4 w-4 text-black/50" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold font-mono">1,420</div>
+            <div className="text-3xl font-bold font-mono">
+              {totalPallets || 0}
+            </div>
             <p className="text-xs text-muted-foreground font-medium mt-1">
-              <span className="text-black font-semibold">+12%</span> from last month
+              Live from database
             </p>
           </CardContent>
         </Card>
@@ -82,9 +136,11 @@ export default function DashboardOverview() {
             <AlertTriangle className="h-4 w-4 text-red-600" />
           </CardHeader>
           <CardContent className="pl-6">
-            <div className="text-3xl font-bold font-mono text-red-600">8</div>
+            <div className="text-3xl font-bold font-mono text-red-600">
+              {quarantineCount || 0}
+            </div>
             <p className="text-xs text-muted-foreground font-medium mt-1">
-              Thermal runaway risk detected
+              Needs inspection
             </p>
           </CardContent>
         </Card>
@@ -99,9 +155,11 @@ export default function DashboardOverview() {
             <Clock className="h-4 w-4 text-blue-600" />
           </CardHeader>
           <CardContent className="pl-6">
-            <div className="text-3xl font-bold font-mono text-blue-600">34</div>
+            <div className="text-3xl font-bold font-mono text-blue-600">
+              {pendingQaCount || 0}
+            </div>
             <p className="text-xs text-muted-foreground font-medium mt-1">
-              Awaiting auto-release scan
+              Awaiting auto-release
             </p>
           </CardContent>
         </Card>
@@ -121,11 +179,11 @@ export default function DashboardOverview() {
                 className="rounded-none font-bold uppercase tracking-widest text-[10px] border-green-600 text-green-600 bg-green-50"
               >
                 <CheckCircle2 className="h-3 w-3 mr-1" />
-                Verified
+                Connected
               </Badge>
             </div>
             <p className="text-xs text-muted-foreground font-medium mt-3">
-              Telemetry streams active
+              Supabase Real-time
             </p>
           </CardContent>
         </Card>
@@ -138,7 +196,10 @@ export default function DashboardOverview() {
             <h2 className="text-lg font-bold uppercase tracking-widest">
               Critical Battery Watchlist
             </h2>
-            <Link href="/dashboard/ev-monitor" className="text-xs font-bold uppercase tracking-widest text-black/50 hover:text-black transition-colors">
+            <Link
+              href="/dashboard/ev-monitor"
+              className="text-xs font-bold uppercase tracking-widest text-black/50 hover:text-black transition-colors"
+            >
               View All
             </Link>
           </div>
@@ -146,71 +207,81 @@ export default function DashboardOverview() {
           <Card className="rounded-none border-black/20 shadow-none">
             <CardContent className="p-0">
               <div className="divide-y divide-black/10">
-                {/* Watchlist Item 1 */}
-                <div className="p-4 flex items-center justify-between bg-red-50/50 hover:bg-red-50 transition-colors">
-                  <div className="flex items-start gap-4">
-                    <div className="bg-red-100 p-2 text-red-600 shrink-0">
-                      <Thermometer className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono font-bold text-base">B-105</span>
-                        <Badge variant="destructive" className="rounded-none text-[9px] uppercase tracking-widest">Reject</Badge>
-                      </div>
-                      <p className="text-xs text-black/60 font-medium mt-1">
-                        WARNING: Temperature 37°C above safe range (35°C).
-                      </p>
-                    </div>
+                {!watchlist || watchlist.length === 0 ? (
+                  <div className="p-8 text-center text-sm text-black/60 font-medium">
+                    No critical issues detected. All batteries are optimal.
                   </div>
-                  <div className="text-right">
-                    <div className="font-mono text-xl font-bold text-red-600">37.0°C</div>
-                    <div className="text-[10px] text-black/40 font-bold uppercase tracking-widest mt-1">Zone C · Rack 1</div>
-                  </div>
-                </div>
+                ) : (
+                  watchlist.map((pallet) => {
+                    const isReject = pallet.status === "REJECT";
+                    const isPending = pallet.status === "UNRELEASED";
+                    const isHold = pallet.status === "ON HOLD";
 
-                {/* Watchlist Item 2 */}
-                <div className="p-4 flex items-center justify-between bg-yellow-50/50 hover:bg-yellow-50 transition-colors">
-                  <div className="flex items-start gap-4">
-                    <div className="bg-yellow-100 p-2 text-yellow-600 shrink-0">
-                      <Activity className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono font-bold text-base">B-212</span>
-                        <Badge variant="outline" className="rounded-none text-[9px] uppercase tracking-widest border-yellow-500 text-yellow-700 bg-yellow-100">On Hold</Badge>
-                      </div>
-                      <p className="text-xs text-black/60 font-medium mt-1">
-                        Humidity anomaly detected (68%). Pending inspection.
-                      </p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="font-mono text-xl font-bold text-yellow-600">26.5°C</div>
-                    <div className="text-[10px] text-black/40 font-bold uppercase tracking-widest mt-1">Zone A · Rack 4</div>
-                  </div>
-                </div>
+                    const bgColor = isReject
+                      ? "bg-red-50/50 hover:bg-red-50"
+                      : isHold
+                        ? "bg-yellow-50/50 hover:bg-yellow-50"
+                        : "hover:bg-black/5";
+                    const iconBg = isReject
+                      ? "bg-red-100 text-red-600"
+                      : isHold
+                        ? "bg-yellow-100 text-yellow-600"
+                        : "bg-blue-100 text-blue-600";
+                    const Icon = isReject
+                      ? Thermometer
+                      : isHold
+                        ? Activity
+                        : Clock;
+                    const badgeVariant = isReject ? "destructive" : "outline";
+                    const badgeClass = isReject
+                      ? "rounded-none text-[9px] uppercase tracking-widest"
+                      : isHold
+                        ? "rounded-none text-[9px] uppercase tracking-widest border-yellow-500 text-yellow-700 bg-yellow-100"
+                        : "rounded-none text-[9px] uppercase tracking-widest border-blue-500 text-blue-700 bg-blue-50";
 
-                {/* Watchlist Item 3 */}
-                <div className="p-4 flex items-center justify-between hover:bg-black/5 transition-colors">
-                  <div className="flex items-start gap-4">
-                    <div className="bg-blue-100 p-2 text-blue-600 shrink-0">
-                      <Clock className="h-5 w-5" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-mono font-bold text-base">B-109</span>
-                        <Badge variant="outline" className="rounded-none text-[9px] uppercase tracking-widest border-blue-500 text-blue-700 bg-blue-50">Pending QA</Badge>
+                    return (
+                      <div
+                        key={pallet.id}
+                        className={`p-4 flex items-center justify-between transition-colors ${bgColor}`}
+                      >
+                        <div className="flex items-start gap-4">
+                          <div className={`p-2 shrink-0 ${iconBg}`}>
+                            <Icon className="h-5 w-5" />
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-mono font-bold text-base">
+                                {pallet.pallet_code}
+                              </span>
+                              <Badge
+                                variant={badgeVariant as any}
+                                className={badgeClass}
+                              >
+                                {pallet.status}
+                              </Badge>
+                            </div>
+                            <p className="text-xs text-black/60 font-medium mt-1 max-w-sm line-clamp-1">
+                              {pallet.alert_reason ||
+                                (isPending
+                                  ? "Awaiting document extraction."
+                                  : "Pending inspection.")}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div
+                            className={`font-mono text-xl font-bold ${isReject ? "text-red-600" : isHold ? "text-yellow-600" : ""}`}
+                          >
+                            {pallet.temperature}°C
+                          </div>
+                          <div className="text-[10px] text-black/40 font-bold uppercase tracking-widest mt-1">
+                            {pallet.location}
+                          </div>
+                        </div>
                       </div>
-                      <p className="text-xs text-black/60 font-medium mt-1">
-                        Arrived from LG Chem. Awaiting document extraction.
-                      </p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="font-mono text-xl font-bold">23.5°C</div>
-                    <div className="text-[10px] text-black/40 font-bold uppercase tracking-widest mt-1">Receiving Bay</div>
-                  </div>
-                </div>
+                    );
+                  })
+                )}
               </div>
             </CardContent>
           </Card>
@@ -239,77 +310,64 @@ export default function DashboardOverview() {
             </CardHeader>
             <ScrollArea className="flex-1">
               <div className="p-4 space-y-4">
-                {/* Item 1 */}
-                <div className="flex flex-col gap-2 pb-4 border-b border-black/10">
-                  <div className="flex justify-between items-start">
-                    <div className="flex gap-2 items-center">
-                      <FileText className="h-4 w-4 text-black/60" />
-                      <span className="text-sm font-bold font-mono">
-                        PO-2026-X1
-                      </span>
-                    </div>
-                    <Badge
-                      variant="outline"
-                      className="rounded-none text-[10px] bg-black text-white border-black font-bold uppercase tracking-wider"
-                    >
-                      Pending
-                    </Badge>
+                {!recentScans || recentScans.length === 0 ? (
+                  <div className="text-center text-xs text-black/50 py-4 font-medium uppercase tracking-widest">
+                    No scans available
                   </div>
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>
-                      Conf: <span className="font-mono text-black">0.82</span>
-                    </span>
-                    <span>2 mins ago</span>
-                  </div>
-                </div>
+                ) : (
+                  recentScans.map((scan) => {
+                    const isRejected = !scan.passed_qa;
+                    const statusLabel = scan.passed_qa
+                      ? "Released"
+                      : scan.fail_reason
+                        ? "Rejected"
+                        : "Pending";
+                    const isReleased = statusLabel === "Released";
 
-                {/* Item 2 */}
-                <div className="flex flex-col gap-2 pb-4 border-b border-black/10">
-                  <div className="flex justify-between items-start">
-                    <div className="flex gap-2 items-center">
-                      <FileText className="h-4 w-4 text-black/60" />
-                      <span className="text-sm font-bold font-mono">
-                        INV-992-B
-                      </span>
-                    </div>
-                    <Badge
-                      variant="outline"
-                      className="rounded-none text-[10px] bg-white text-black border-black/30 font-bold uppercase tracking-wider"
-                    >
-                      Released
-                    </Badge>
-                  </div>
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>
-                      Conf: <span className="font-mono text-black">0.98</span>
-                    </span>
-                    <span>1 hr ago</span>
-                  </div>
-                </div>
-
-                {/* Item 3 */}
-                <div className="flex flex-col gap-2 pb-4 border-black/10">
-                  <div className="flex justify-between items-start">
-                    <div className="flex gap-2 items-center">
-                      <FileText className="h-4 w-4 text-red-600" />
-                      <span className="text-sm font-bold font-mono text-red-600">
-                        MANIFEST-A2
-                      </span>
-                    </div>
-                    <Badge
-                      variant="destructive"
-                      className="rounded-none text-[10px] border-red-600 font-bold uppercase tracking-wider"
-                    >
-                      Rejected
-                    </Badge>
-                  </div>
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>
-                      Conf: <span className="font-mono text-red-600">0.45</span>
-                    </span>
-                    <span>3 hrs ago</span>
-                  </div>
-                </div>
+                    return (
+                      <div
+                        key={scan.id}
+                        className="flex flex-col gap-2 pb-4 border-b last:border-0 border-black/10"
+                      >
+                        <div className="flex justify-between items-start">
+                          <div className="flex gap-2 items-center">
+                            <FileText
+                              className={`h-4 w-4 ${isRejected ? "text-red-600" : "text-black/60"}`}
+                            />
+                            <span
+                              className={`text-sm font-bold font-mono ${isRejected ? "text-red-600" : ""}`}
+                            >
+                              {scan.document_name}
+                            </span>
+                          </div>
+                          <Badge
+                            variant={isRejected ? "destructive" : "outline"}
+                            className={
+                              isRejected
+                                ? "rounded-none text-[10px] border-red-600 font-bold uppercase tracking-wider"
+                                : isReleased
+                                  ? "rounded-none text-[10px] bg-white text-black border-black/30 font-bold uppercase tracking-wider"
+                                  : "rounded-none text-[10px] bg-black text-white border-black font-bold uppercase tracking-wider"
+                            }
+                          >
+                            {statusLabel}
+                          </Badge>
+                        </div>
+                        <div className="flex justify-between text-xs text-muted-foreground">
+                          <span>
+                            Conf:{" "}
+                            <span
+                              className={`font-mono ${isRejected ? "text-red-600" : "text-black"}`}
+                            >
+                              {scan.ai_confidence || "0.00"}
+                            </span>
+                          </span>
+                          <span>{formatRelativeTime(scan.created_at)}</span>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
               </div>
             </ScrollArea>
           </Card>

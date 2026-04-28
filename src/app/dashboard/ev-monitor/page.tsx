@@ -35,15 +35,24 @@ const MOCK_PALLETS: Pallet[] = [
 type AlertEntry = { id: string; message: string; type: "warn" | "critical" };
 
 export default function EvMonitorPage() {
-  const [pallets, setPallets] = useState<Pallet[]>(MOCK_PALLETS);
+  const [pallets, setPallets] = useState<Pallet[]>([]);
   const [selectedPallet, setSelectedPallet] = useState<Pallet | null>(null);
   const [showCopilot, setShowCopilot] = useState(false);
   const [liveAlerts, setLiveAlerts] = useState<AlertEntry[]>([]);
   const [isConnected, setIsConnected] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const supabase = createClient();
 
-  // Try to subscribe to Supabase Realtime
+  // Try to subscribe to Supabase Realtime and fetch initial data
   useEffect(() => {
+    const fetchInitialData = async () => {
+      const { data } = await supabase.from("pallets").select("*").order("pallet_code");
+      if (data) setPallets(data);
+      setIsLoading(false);
+    };
+
+    fetchInitialData();
+
     const channel = supabase
       .channel("pallets-realtime")
       .on(
@@ -192,24 +201,33 @@ export default function EvMonitorPage() {
 
         {/* Pallet Grid */}
         <div className="flex-1 overflow-auto p-6">
-          {!isConnected && (
-            <div className="mb-4 p-3 bg-black/5 border border-black/10 text-xs font-mono text-black/50 flex items-center gap-2">
-              <RefreshCw className="h-3.5 w-3.5" />
-              Running in Demo Mode — Supabase Realtime not connected. Run{" "}
-              <code className="bg-black text-white px-1">node scripts/iot-simulator.js B-105</code> to trigger a live anomaly.
+          {!isConnected && !isLoading && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 text-xs font-mono text-red-600 flex items-center gap-2">
+              <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+              Connecting to Supabase Realtime...
             </div>
           )}
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {pallets.map((pallet) => (
-              <PalletCard
-                key={pallet.id}
-                pallet={pallet}
-                isSelected={selectedPallet?.id === pallet.id}
-                onSelect={handleSelectPallet}
-              />
-            ))}
-          </div>
+          {isLoading ? (
+            <div className="flex items-center justify-center h-40 text-sm text-black/50 font-mono">
+              <RefreshCw className="h-5 w-5 animate-spin mr-2" /> Loading pallets...
+            </div>
+          ) : pallets.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-40 text-black/50 font-mono text-sm">
+              No pallets found in database.
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {pallets.map((pallet) => (
+                <PalletCard
+                  key={pallet.id}
+                  pallet={pallet}
+                  isSelected={selectedPallet?.id === pallet.id}
+                  onSelect={handleSelectPallet}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
