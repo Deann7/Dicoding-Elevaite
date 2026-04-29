@@ -1,5 +1,12 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { QaTemplateButton } from "@/components/ev-monitor/qa-template-button";
@@ -15,10 +22,9 @@ import {
   Thermometer,
   Clock,
   Battery,
-  Calendar,
-  Download,
-  TrendingUp,
   XCircle,
+  Calendar,
+  TrendingUp,
 } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { cookies } from "next/headers";
@@ -42,8 +48,18 @@ export default async function DashboardOverview() {
   const supabase = createClient(cookieStore);
 
   // Get current user untuk multi-tenant filtering
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   const userId = user?.id;
+
+  // Fetch Settings for Business Name
+  const { data: settings } = await supabase
+    .from("system_settings")
+    .select("business_name")
+    .eq("user_id", userId!)
+    .single();
+  const businessName = settings?.business_name || "Elevaite Volt-Guard";
 
   // Fetch KPIs — hanya data milik user ini
   const { count: totalPallets } = await supabase
@@ -81,86 +97,81 @@ export default async function DashboardOverview() {
     .limit(10);
 
   return (
-    <div className="space-y-6 max-w-[1600px] mx-auto">
-      {/* ── HEADER SECTION ──────────────────────────── */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div>
-          <h1 className="font-heading text-3xl md:text-4xl font-bold text-slate-900 tracking-tight">
-            Dashboard Overview
+    <div className="space-y-8 max-w-7xl mx-auto pb-12">
+      {/* HEADER SECTION */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 bg-gradient-to-r from-blue-900 to-indigo-800 p-8 rounded-2xl text-white shadow-xl">
+        <div className="space-y-2">
+          <Badge className="bg-blue-400/20 text-blue-100 hover:bg-blue-400/30 border-none px-3 py-1 mb-2">
+            EV Management Dashboard
+          </Badge>
+          <h1 className="text-4xl font-extrabold tracking-tight">
+            {businessName}
           </h1>
-          <p className="text-slate-500 mt-2 text-base">
-            Real-time status of the EV Battery pallet ecosystem.
-          </p>
         </div>
         <div className="flex gap-3 max-md:flex-col">
-          <QaTemplateButton />
-          <Link href="/dashboard/ev-monitor" className="hidden sm:block">
-            <Button
-              variant="outline"
-              className="rounded-xl font-heading text-sm font-semibold h-11 px-5 gap-2 border-slate-200 hover:bg-slate-50 transition-colors"
-            >
-              <Calendar className="h-4 w-4" />
-              Last 24 Hours
-            </Button>
-          </Link>
-          <Link href="/dashboard/qa-scanner">
-            <Button className="rounded-xl font-heading text-sm font-semibold h-11 px-6 gap-2 bg-primary text-white hover:bg-primary/90 shadow-lg shadow-primary/20 active:scale-[0.97] transition-all">
-              <Plus className="h-4 w-4" />
-              New QA Scan
-            </Button>
-          </Link>
+          <div className="bg-white/10 rounded-xl p-1 backdrop-blur-md flex items-center gap-2">
+            <QaTemplateButton />
+            <Link href="/dashboard/ev-monitor" className="hidden sm:block">
+              <Button
+                variant="ghost"
+                className="rounded-lg font-bold uppercase tracking-wider text-xs h-10 px-4 gap-2 text-white hover:bg-white/20 hover:text-white transition-all"
+              >
+                <Battery className="h-4 w-4" />
+                Live Monitor
+              </Button>
+            </Link>
+            <Link href="/dashboard/qa-scanner">
+              <Button className="rounded-lg font-bold uppercase tracking-wider text-xs h-10 px-6 gap-2 bg-white text-blue-900 hover:bg-blue-50 transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5">
+                <Plus className="h-4 w-4" />
+                New QA Scan
+              </Button>
+            </Link>
+          </div>
         </div>
       </div>
 
-      {/* ── BENTO KPI GRID ──────────────────────────── */}
-      <div className="grid grid-cols-12 gap-5">
-        {/* Total EV Pallets */}
-        <div className="col-span-12 sm:col-span-6 lg:col-span-4 bg-white p-6 rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,0.04)] border border-slate-100 flex flex-col justify-between relative overflow-hidden">
-          <div className="absolute -right-4 -top-4 w-32 h-32 bg-primary/5 rounded-full blur-3xl" />
-          <div>
-            <div className="flex justify-between items-start mb-4">
-              <span className="font-data text-xs font-semibold text-slate-400 uppercase tracking-widest">
-                Total EV Pallets
-              </span>
-              <span className="p-2 bg-primary/10 text-primary rounded-lg">
-                <Package className="h-5 w-5" />
-              </span>
+      {/* KPI STATS */}
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        {/* Total Pallets */}
+        <Card className="rounded-2xl border-slate-200 shadow-sm hover:shadow-md transition-shadow bg-white overflow-hidden group">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-xs uppercase tracking-widest font-bold text-slate-500">
+              Total EV Pallets
+            </CardTitle>
+            <div className="p-2 bg-blue-50 rounded-lg group-hover:bg-blue-100 transition-colors">
+              <Package className="h-4 w-4 text-blue-600" />
             </div>
-            <h3 className="font-data text-4xl font-medium text-slate-900">
+          </CardHeader>
+          <CardContent>
+            <div className="text-4xl font-extrabold text-slate-900">
               {totalPallets || 0}
-            </h3>
-          </div>
-          <div className="mt-4 flex items-center gap-2 text-green-600 text-sm font-semibold">
-            <TrendingUp className="h-4 w-4" />
-            <span>Live from database</span>
-          </div>
-        </div>
-
-        {/* Reject / Quarantine */}
-        <div className="col-span-6 sm:col-span-3 lg:col-span-2 bg-white p-6 rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,0.04)] border border-slate-100 flex flex-col justify-between">
-          <div>
-            <div className="flex justify-between items-start mb-4">
-              <span className="font-data text-xs font-semibold text-slate-400 uppercase tracking-widest">
-                Reject
-              </span>
-              <span className="p-2 bg-red-50 text-red-600 rounded-lg">
-                <AlertTriangle className="h-5 w-5" />
-              </span>
             </div>
-            <h3 className="font-data text-4xl font-medium text-slate-900">
+            <p className="text-xs text-slate-500 font-medium mt-1">
+              Live from inventory
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Quarantine Status */}
+        <Card className="rounded-2xl border-slate-200 shadow-sm hover:shadow-md transition-shadow bg-white relative overflow-hidden group">
+          <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-red-500"></div>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 pl-6">
+            <CardTitle className="text-xs uppercase tracking-widest font-bold text-red-600">
+              Quarantine / Reject
+            </CardTitle>
+            <div className="p-2 bg-red-50 rounded-lg group-hover:bg-red-100 transition-colors">
+              <AlertTriangle className="h-4 w-4 text-red-600" />
+            </div>
+          </CardHeader>
+          <CardContent className="pl-6">
+            <div className="text-4xl font-extrabold text-red-600">
               {quarantineCount || 0}
-            </h3>
-          </div>
-          <div className="mt-4">
-            {(quarantineCount || 0) > 0 ? (
-              <span className="px-2.5 py-1 bg-red-50 text-red-600 rounded-full text-[10px] font-bold uppercase tracking-wider">
-                Urgent
-              </span>
-            ) : (
-              <span className="text-xs text-slate-400 font-medium">All clear</span>
-            )}
-          </div>
-        </div>
+            </div>
+            <p className="text-xs text-slate-500 font-medium mt-1">
+              Needs inspection
+            </p>
+          </CardContent>
+        </Card>
 
         {/* Pending QA */}
         <div className="col-span-6 sm:col-span-3 lg:col-span-2 bg-white p-6 rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,0.04)] border border-slate-100 flex flex-col justify-between">
@@ -267,7 +278,10 @@ export default async function DashboardOverview() {
                         : "bg-slate-100 text-slate-600 border-slate-200";
 
                     return (
-                      <tr key={pallet.id} className="hover:bg-slate-50/50 transition-colors">
+                      <tr
+                        key={pallet.id}
+                        className="hover:bg-slate-50/50 transition-colors"
+                      >
                         <td className="px-6 py-5">
                           <div className="flex items-center gap-3">
                             <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center">
@@ -279,14 +293,20 @@ export default async function DashboardOverview() {
                           </div>
                         </td>
                         <td className="px-6 py-5">
-                          <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${statusColor}`}>
-                            <span className={`w-1.5 h-1.5 rounded-full ${isReject ? "bg-red-500" : isHold ? "bg-yellow-500" : "bg-slate-400"}`} />
+                          <span
+                            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${statusColor}`}
+                          >
+                            <span
+                              className={`w-1.5 h-1.5 rounded-full ${isReject ? "bg-red-500" : isHold ? "bg-yellow-500" : "bg-slate-400"}`}
+                            />
                             {pallet.status}
                           </span>
                         </td>
                         <td className="px-6 py-5">
                           <div className="flex items-center gap-2">
-                            <span className={`font-data text-lg font-medium ${tempColor}`}>
+                            <span
+                              className={`font-data text-lg font-medium ${tempColor}`}
+                            >
                               {pallet.temperature}°C
                             </span>
                             <Thermometer className={`h-4 w-4 ${tempColor}`} />

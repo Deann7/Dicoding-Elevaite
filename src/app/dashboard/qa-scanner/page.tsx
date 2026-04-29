@@ -140,7 +140,7 @@ export default function QaScannerPage() {
         <div className="flex gap-3 shrink-0">
           <span className="flex items-center gap-2 px-4 py-2 bg-green-50 text-green-700 rounded-full font-data text-[10px] font-semibold uppercase tracking-widest border border-green-200">
             <CheckCircle2 className="h-3.5 w-3.5" />
-            AI Model: V4.2 Stable
+            Powered by Azure Document Intelligence
           </span>
         </div>
       </div>
