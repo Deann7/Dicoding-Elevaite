@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { motion, useInView } from "framer-motion";
+import { motion, useInView, Variants } from "framer-motion";
 import { useRef } from "react";
 import {
   ArrowRight,
@@ -16,26 +16,26 @@ import {
 } from "lucide-react";
 
 /* ── Animation Variants ──────────────────────────────── */
-const fadeUp = {
+const fadeUp: Variants = {
   hidden: { opacity: 0, y: 32 },
   visible: (i: number) => ({
     opacity: 1,
     y: 0,
-    transition: { duration: 0.6, delay: i * 0.12, ease: [0.25, 0.46, 0.45, 0.94] },
+    transition: { duration: 0.6, delay: i * 0.12, ease: [0.25, 0.46, 0.45, 0.94] as const },
   }),
 };
 
-const fadeIn = {
+const fadeIn: Variants = {
   hidden: { opacity: 0 },
   visible: { opacity: 1, transition: { duration: 0.6 } },
 };
 
-const scaleUp = {
+const scaleUp: Variants = {
   hidden: { opacity: 0, scale: 0.92 },
   visible: {
     opacity: 1,
     scale: 1,
-    transition: { duration: 0.7, ease: [0.25, 0.46, 0.45, 0.94] },
+    transition: { duration: 0.7, ease: [0.25, 0.46, 0.45, 0.94] as const },
   },
 };
 
@@ -43,9 +43,11 @@ const scaleUp = {
 function AnimatedSection({
   children,
   className = "",
+  id,
 }: {
   children: React.ReactNode;
   className?: string;
+  id?: string;
 }) {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: "-80px" });
@@ -53,6 +55,7 @@ function AnimatedSection({
   return (
     <motion.section
       ref={ref}
+      id={id}
       initial="hidden"
       animate={isInView ? "visible" : "hidden"}
       variants={fadeIn}

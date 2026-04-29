@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+export const dynamic = "force-dynamic";
+
+const getSupabase = () => {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  );
+};
 
 const TEMP_WARN_THRESHOLD = 35;  // °C
 const TEMP_DANGER_THRESHOLD = 42; // °C - Thermal Runaway risk
@@ -33,6 +37,7 @@ export async function POST(req: NextRequest) {
       alert_reason = `WARNING: Temperature ${temperature}°C above safe range (${TEMP_WARN_THRESHOLD}°C). Pending inspection.`;
     }
 
+    const supabase = getSupabase();
     const { data, error } = await supabase
       .from("pallets")
       .update({
