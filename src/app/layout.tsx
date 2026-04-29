@@ -10,7 +10,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Elevaite Volt-Guard — AI-Driven EV Battery Inventory",
+  title: "Elevaite Volt-Guard",
   description:
     "Sistem manajemen inventaris pintar untuk manufaktur EV & Baterai. Otomatisasi pelacakan status barang secara real-time.",
 };
