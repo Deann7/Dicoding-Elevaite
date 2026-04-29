@@ -73,7 +73,7 @@ export function LandingContent({ isLoggedIn }: { isLoggedIn: boolean }) {
   return (
     <main className="flex-1 flex flex-col">
       {/* ── HERO ──────────────────────────────────────── */}
-      <section className="relative pt-32 pb-20 md:pt-48 md:pb-32 overflow-hidden hero-gradient">
+      <section className="relative pt-22 pb-20 md:pt-26 md:pb-32 overflow-hidden hero-gradient">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center">
           {/* Text */}
           <div className="z-10">

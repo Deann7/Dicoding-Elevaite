@@ -16,6 +16,8 @@ import {
   CheckCircle2,
   Clock,
   X,
+  Filter,
+  SlidersHorizontal,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -131,6 +133,7 @@ export default function EvMonitorPage() {
   const [isConnected, setIsConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
+  const [filter, setFilter] = useState<"all" | "alerts">("all");
   const itemsPerPage = 6;
   const supabase = createClient();
 
@@ -195,9 +198,15 @@ export default function EvMonitorPage() {
     setShowCopilot(true);
   }, []);
 
+  // Filter logic
+  const filteredPallets =
+    filter === "alerts"
+      ? pallets.filter((p) => p.status !== "OK")
+      : pallets;
+
   // Pagination logic
-  const totalPages = Math.ceil(pallets.length / itemsPerPage);
-  const currentPallets = pallets.slice(
+  const totalPages = Math.ceil(filteredPallets.length / itemsPerPage);
+  const currentPallets = filteredPallets.slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage,
   );
@@ -207,41 +216,65 @@ export default function EvMonitorPage() {
   const rejectCount = pallets.filter((p) => p.status === "REJECT").length;
 
   return (
-    <div className="flex h-full  -m-6 md:-m-8">
+    <div className="flex h-full -m-6 md:-m-10">
       {/* MAIN PANEL */}
-      <div className="flex-1 flex flex-col ">
-        {/* Header */}
-        <div className="px-6 py-4 border-b border-black/10 bg-white shrink-0">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="bg-black text-white p-2">
-                <Battery className="h-5 w-5" />
-              </div>
-              <div>
-                <h1 className="text-lg font-bold uppercase tracking-widest leading-tight">
-                  EV Battery Monitor
-                </h1>
-                <p className="text-xs text-black/50 font-mono">
-                  Volt-Guard · Predictive Degradation & Auto-Quarantine
-                </p>
-              </div>
+      <div className="flex-1 flex flex-col">
+        {/* ── Header ──────────────────────────────────── */}
+        <div className="px-6 md:px-10 py-6 bg-[#f8f9ff] shrink-0">
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+            <div>
+              <h1 className="font-heading text-3xl md:text-4xl font-bold text-slate-900 tracking-tight">
+                EV Battery Monitor
+              </h1>
+              <p className="text-slate-500 mt-1 text-base">
+                Real-time telemetry and QA status for line B-100 units.
+              </p>
             </div>
 
             <div className="flex items-center gap-3">
-              {/* Connection status */}
-              <div
-                className={`flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest px-2 py-1 border ${isConnected ? "text-green-700 border-green-300 bg-green-50" : "text-black/40 border-black/10 bg-black/5"}`}
-              >
-                <Wifi
-                  className={`h-3 w-3 ${isConnected ? "text-green-600" : "text-black/30"}`}
-                />
-                {isConnected ? "Live" : "Demo Mode"}
+              {/* Filter Tabs */}
+              <div className="flex items-center bg-white border border-slate-200 rounded-xl overflow-hidden">
+                <button
+                  onClick={() => { setFilter("all"); setCurrentPage(1); }}
+                  className={`px-4 py-2 text-sm font-heading font-semibold transition-colors ${
+                    filter === "all"
+                      ? "bg-primary text-white"
+                      : "text-slate-600 hover:bg-slate-50"
+                  }`}
+                >
+                  All Units
+                </button>
+                <button
+                  onClick={() => { setFilter("alerts"); setCurrentPage(1); }}
+                  className={`px-4 py-2 text-sm font-heading font-semibold transition-colors ${
+                    filter === "alerts"
+                      ? "bg-primary text-white"
+                      : "text-slate-600 hover:bg-slate-50"
+                  }`}
+                >
+                  Alerts Only
+                </button>
               </div>
 
+              {/* Connection Status */}
+              <div
+                className={`hidden sm:flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest px-3 py-2 rounded-xl border ${
+                  isConnected
+                    ? "text-green-700 border-green-200 bg-green-50"
+                    : "text-slate-400 border-slate-200 bg-white"
+                }`}
+              >
+                <Wifi
+                  className={`h-3 w-3 ${isConnected ? "text-green-600" : "text-slate-300"}`}
+                />
+                {isConnected ? "Live" : "Demo"}
+              </div>
+
+              {/* Copilot Toggle */}
               <Button
                 variant="outline"
                 size="sm"
-                className="rounded-none border-black/20 h-8 gap-1.5 text-xs font-bold uppercase tracking-widest"
+                className="rounded-xl border-slate-200 h-9 gap-1.5 text-xs font-heading font-semibold hover:bg-slate-50"
                 onClick={() => setShowCopilot((prev) => !prev)}
               >
                 <Bot className="h-3.5 w-3.5" />
@@ -249,52 +282,9 @@ export default function EvMonitorPage() {
               </Button>
             </div>
           </div>
-
-          {/* KPI Bar */}
-          <div className="flex gap-6 mt-4">
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="h-4 w-4 text-green-600" />
-              <span className="font-mono font-bold text-lg text-green-700">
-                {okCount}
-              </span>
-              <span className="text-xs text-black/50 uppercase tracking-widest">
-                OK
-              </span>
-            </div>
-            <div className="w-px bg-black/10" />
-            <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4 text-yellow-600" />
-              <span className="font-mono font-bold text-lg text-yellow-700">
-                {holdCount}
-              </span>
-              <span className="text-xs text-black/50 uppercase tracking-widest">
-                On Hold
-              </span>
-            </div>
-            <div className="w-px bg-black/10" />
-            <div className="flex items-center gap-2">
-              <AlertTriangle className="h-4 w-4 text-red-600" />
-              <span className="font-mono font-bold text-lg text-red-700">
-                {rejectCount}
-              </span>
-              <span className="text-xs text-black/50 uppercase tracking-widest">
-                Reject
-              </span>
-            </div>
-            <div className="w-px bg-black/10" />
-            <div className="flex items-center gap-2">
-              <Battery className="h-4 w-4 text-black/50" />
-              <span className="font-mono font-bold text-lg">
-                {pallets.length}
-              </span>
-              <span className="text-xs text-black/50 uppercase tracking-widest">
-                Total Pallets
-              </span>
-            </div>
-          </div>
         </div>
 
-        {/* Live Alerts Ticker */}
+        {/* ── Live Alerts Ticker ──────────────────────── */}
         <AnimatePresence>
           {liveAlerts.length > 0 && (
             <motion.div
@@ -306,7 +296,11 @@ export default function EvMonitorPage() {
               {liveAlerts.slice(0, 1).map((alert) => (
                 <div
                   key={alert.id}
-                  className={`flex items-center gap-3 px-6 py-2 text-xs font-mono ${alert.type === "critical" ? "bg-red-600 text-white" : "bg-yellow-500 text-black"}`}
+                  className={`flex items-center gap-3 px-6 md:px-10 py-2.5 text-xs font-data ${
+                    alert.type === "critical"
+                      ? "bg-red-600 text-white"
+                      : "bg-yellow-500 text-black"
+                  }`}
                 >
                   <BatteryWarning className="h-4 w-4 shrink-0 animate-pulse" />
                   <span className="font-bold uppercase tracking-widest">
@@ -330,20 +324,22 @@ export default function EvMonitorPage() {
           )}
         </AnimatePresence>
 
-        {/* PALLET GRID */}
-        <div className="p-6 md:p-8 flex-1 overflow-auto pb-24">
+        {/* ── PALLET GRID ─────────────────────────────── */}
+        <div className="p-6 md:p-10 flex-1 overflow-auto pb-24 bg-[#f8f9ff]">
           {isLoading ? (
-            <div className="flex items-center justify-center h-40 text-sm text-black/50 font-mono">
+            <div className="flex items-center justify-center h-40 text-sm text-slate-400 font-data">
               <RefreshCw className="h-5 w-5 animate-spin mr-2" /> Loading
               pallets...
             </div>
-          ) : pallets.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-40 text-black/50 font-mono text-sm">
-              No pallets found in database.
+          ) : filteredPallets.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-40 text-slate-400 font-data text-sm">
+              {filter === "alerts"
+                ? "No alerts detected. All units are operational."
+                : "No pallets found in database."}
             </div>
           ) : (
             <div className="flex flex-col h-full justify-between gap-8">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
                 {currentPallets.map((pallet) => (
                   <PalletCard
                     key={pallet.id}
@@ -356,17 +352,17 @@ export default function EvMonitorPage() {
 
               {/* PAGINATION */}
               {totalPages > 1 && (
-                <div className="flex items-center justify-between mt-auto border-t border-black/10 pt-4">
-                  <p className="text-xs font-medium text-black/50 uppercase tracking-widest hidden sm:block">
+                <div className="flex items-center justify-between mt-auto border-t border-slate-200 pt-4">
+                  <p className="text-xs font-medium text-slate-400 font-data uppercase tracking-widest hidden sm:block">
                     Showing {(currentPage - 1) * itemsPerPage + 1}-
-                    {Math.min(currentPage * itemsPerPage, pallets.length)} of{" "}
-                    {pallets.length} pallets
+                    {Math.min(currentPage * itemsPerPage, filteredPallets.length)} of{" "}
+                    {filteredPallets.length} pallets
                   </p>
                   <div className="flex items-center gap-2">
                     <Button
                       variant="outline"
                       size="sm"
-                      className="rounded-none border-black/20 text-xs font-bold uppercase tracking-widest"
+                      className="rounded-xl border-slate-200 text-xs font-heading font-semibold"
                       onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                       disabled={currentPage === 1}
                     >
@@ -378,10 +374,10 @@ export default function EvMonitorPage() {
                           key={i}
                           variant="outline"
                           size="sm"
-                          className={`rounded-none border-black/20 text-xs font-bold uppercase tracking-widest w-8 h-8 p-0 ${
+                          className={`rounded-xl border-slate-200 text-xs font-heading font-semibold w-8 h-8 p-0 ${
                             currentPage === i + 1
-                              ? "bg-black text-white hover:bg-black/90"
-                              : "hover:bg-black/5"
+                              ? "bg-primary text-white border-primary hover:bg-primary/90"
+                              : "hover:bg-slate-50"
                           }`}
                           onClick={() => setCurrentPage(i + 1)}
                         >
@@ -392,7 +388,7 @@ export default function EvMonitorPage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="rounded-none border-black/20 text-xs font-bold uppercase tracking-widest"
+                      className="rounded-xl border-slate-200 text-xs font-heading font-semibold"
                       onClick={() =>
                         setCurrentPage((p) => Math.min(totalPages, p + 1))
                       }
