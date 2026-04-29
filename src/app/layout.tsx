@@ -1,12 +1,8 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
+import { LenisProvider } from "@/components/providers/lenis-provider";
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
@@ -14,8 +10,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "SINERGI - Sistem Inventaris Energi Terintegrasi",
-  description: "A mobile-first energy management system for Indonesian Manufacturing SMEs.",
+  title: "Elevaite Volt-Guard — AI-Driven EV Battery Inventory",
+  description:
+    "Sistem manajemen inventaris pintar untuk manufaktur EV & Baterai. Otomatisasi pelacakan status barang secara real-time.",
 };
 
 export default function RootLayout({
@@ -25,8 +22,8 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased scroll-smooth`}
+      lang="id"
+      className={`${geistMono.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col bg-background text-foreground">
@@ -36,7 +33,7 @@ export default function RootLayout({
           enableSystem={false}
           disableTransitionOnChange
         >
-          {children}
+          <LenisProvider>{children}</LenisProvider>
         </ThemeProvider>
       </body>
     </html>
