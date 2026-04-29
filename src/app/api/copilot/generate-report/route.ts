@@ -1,18 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+import { createClient } from "@/utils/supabase/server";
+import { cookies } from "next/headers";
+import { AzureOpenAI } from "openai";
 
 export async function POST(req: NextRequest) {
   try {
+    const cookieStore = await cookies();
+    const supabase = createClient(cookieStore);
+
     const body = await req.json();
     const { pallet_id } = body;
 
     if (!pallet_id) {
-      return NextResponse.json({ error: "pallet_id is required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "pallet_id is required" },
+        { status: 400 },
+      );
     }
 
     // Fetch pallet data from Supabase
@@ -26,51 +29,77 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Pallet not found" }, { status: 404 });
     }
 
-    // Use OpenAI if API key is available, otherwise use rule-based fallback
-    const openaiApiKey = process.env.OPENAI_API_KEY;
+    // Use Azure OpenAI if API keys are available, otherwise use rule-based fallback
+    const azureEndpoint = process.env.AZURE_COPILOT_ENDPOINT;
+    const azureApiKey = process.env.AZURE_COPILOT_INTELLIGENCE_KEY;
+    const deploymentName = process.env.AZURE_COPILOT_DEPLOYMENT || "gpt-4.1-mini";
 
-    if (openaiApiKey) {
-      const openaiRes = await fetch("https://api.openai.com/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${openaiApiKey}`,
-        },
-        body: JSON.stringify({
-          model: "gpt-4o-mini",
+    if (azureEndpoint && azureApiKey) {
+      try {
+        const apiVersion = "2024-04-01-preview";
+        const options = {
+          endpoint: azureEndpoint,
+          apiKey: azureApiKey,
+          deployment: deploymentName,
+          apiVersion,
+        };
+
+        const client = new AzureOpenAI(options);
+
+        const aiResponse = await client.chat.completions.create({
           messages: [
             {
               role: "system",
-              content:
-                "You are an expert EV Battery Safety Officer generating formal incident reports for a manufacturing facility. Be concise, professional, and always include safety recommendations.",
+              content: "You are a manufacturing quality analyst generating professional incident reports for an EV battery storage facility. Provide structured, data-driven analysis with clear action items.",
             },
             {
               role: "user",
-              content: `Generate a formal incident report for the following EV battery pallet anomaly:\n\nPallet Code: ${pallet.pallet_code}\nLocation: ${pallet.location}\nVendor: ${pallet.vendor}\nCell Count: ${pallet.cell_count}\nCurrent Temperature: ${pallet.temperature}°C\nHumidity: ${pallet.humidity ?? "N/A"}%\nStatus: ${pallet.status}\nAlert Reason: ${pallet.alert_reason}\nTimestamp: ${pallet.last_updated}\n\nThe report must include: 1) Incident Summary, 2) Risk Assessment, 3) Immediate Actions Required, 4) Recommended Next Steps.`,
+              content: `Please generate a professional incident report for the following battery storage anomaly:\n\nPallet ID: ${pallet.pallet_code}\nStorage Location: ${pallet.location}\nSupplier: ${pallet.vendor_name || pallet.vendor}\nUnit Count: ${pallet.cell_count}\nRecorded Temperature: ${pallet.temperature}°C\nHumidity Level: ${pallet.humidity ?? "N/A"}%\nCurrent Status: ${pallet.status}\nAlert Description: ${pallet.alert_reason}\nRecorded At: ${pallet.last_updated}\n\nStructure the report with these sections:\n1. Incident Summary\n2. Risk Assessment\n3. Immediate Actions Required\n4. Recommended Next Steps`,
             },
           ],
-          temperature: 0.3,
-          max_tokens: 600,
-        }),
-      });
+          max_completion_tokens: 800,
+          temperature: 1,
+          top_p: 1,
+          frequency_penalty: 0,
+          presence_penalty: 0,
+          model: deploymentName,
+        });
 
-      const openaiData = await openaiRes.json();
-      const report = openaiData.choices?.[0]?.message?.content;
-      return NextResponse.json({ report, pallet });
+        if ((aiResponse as any)?.error !== undefined) {
+          throw (aiResponse as any).error;
+        }
+
+        const report = aiResponse.choices[0]?.message?.content;
+        if (report) {
+          console.log("✅ Azure AI report generated successfully");
+          return NextResponse.json({ report, pallet });
+        }
+        throw new Error("Empty response from AI");
+      } catch (aiErr: any) {
+        console.error("⚠️ Azure AI failed, using fallback. Error:", aiErr?.message || aiErr?.status);
+        // Gracefully fall through to rule-based report
+      }
     }
 
     // Fallback: Rule-based report (no API key needed — perfect for demo offline)
     const report = generateRuleBasedReport(pallet);
-    return NextResponse.json({ report, pallet });
-  } catch (err) {
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ report, pallet, ai_fallback: true });
+  } catch (err: any) {
+    console.error("❌ Copilot Route Error:", err?.message || err);
+    return NextResponse.json(
+      { error: "Internal server error", detail: err?.message },
+      { status: 500 },
+    );
   }
 }
 
 function generateRuleBasedReport(pallet: Record<string, unknown>) {
   const temp = pallet.temperature as number;
   const riskLevel = temp >= 42 ? "CRITICAL" : temp >= 35 ? "HIGH" : "MEDIUM";
-  const timestamp = new Date(pallet.last_updated as string).toLocaleString("id-ID", { timeZone: "Asia/Jakarta" });
+  const timestamp = new Date(pallet.last_updated as string).toLocaleString(
+    "id-ID",
+    { timeZone: "Asia/Jakarta" },
+  );
 
   return `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ELEVAITE VOLT-GUARD — INCIDENT REPORT

@@ -1,3 +1,5 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@500;600;700;800&family=Space+Grotesk:wght@500;600&display=swap");
+
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
@@ -5,11 +7,15 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  /* ── Core Mappings ──────────────────────────────────── */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
+  --font-heading: "Manrope", ui-sans-serif, system-ui, sans-serif;
+  --font-data: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+
+  /* ── Sidebar (keep existing) ────────────────────────── */
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -18,11 +24,15 @@
   --color-sidebar-primary: var(--sidebar-primary);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar: var(--sidebar);
+
+  /* ── Chart Colors ───────────────────────────────────── */
   --color-chart-5: var(--chart-5);
   --color-chart-4: var(--chart-4);
   --color-chart-3: var(--chart-3);
   --color-chart-2: var(--chart-2);
   --color-chart-1: var(--chart-1);
+
+  /* ── Semantic Tokens ────────────────────────────────── */
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
@@ -39,59 +49,111 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
-  --radius-sm: var(--radius);
-  --radius-md: var(--radius);
+
+  /* ── Radii ──────────────────────────────────────────── */
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
-  --radius-xl: var(--radius);
-  --radius-2xl: var(--radius);
-  --radius-3xl: var(--radius);
-  --radius-4xl: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
 }
 
+/* ══════════════════════════════════════════════════════════
+   LIGHT THEME — Adapted from Stitch "Industrial Insight"
+   palette, remapped to logo colors (Navy + Teal/Emerald).
+   ══════════════════════════════════════════════════════════ */
 :root {
-  --background: #f9f9f9;
-  --foreground: #000000;
+  --background: #f4f7fa;
+  --foreground: #111827;
+
   --card: #ffffff;
-  --card-foreground: #000000;
+  --card-foreground: #111827;
   --popover: #ffffff;
-  --popover-foreground: #000000;
-  --primary: #000000;
+  --popover-foreground: #111827;
+
+  /* Primary  → Electric Violet (from DESIGN.md) */
+  --primary: #5e3bdb;
   --primary-foreground: #ffffff;
-  --secondary: #e5e5e5;
-  --secondary-foreground: #000000;
-  --muted: #e5e5e5;
-  --muted-foreground: #333333;
-  --accent: #e5e5e5;
-  --accent-foreground: #000000;
-  --destructive: #ff4a4a;
-  --border: #e5e5e5;
-  --input: #e5e5e5;
-  --ring: #000000;
-  --radius: 0px;
+
+  /* Secondary → Violet (Purple theme) */
+  --secondary: #7858f5;
+  --secondary-foreground: #ffffff;
+
+  --muted: #e5e7eb;
+  --muted-foreground: #6b7280;
+
+  --accent: #f3f0ff;
+  --accent-foreground: #4c1d95;
+
+  --destructive: #dc2626;
+
+  --border: #e5e7eb;
+  --input: #e5e7eb;
+  --ring: #5e3bdb;
+  --radius: 0.75rem;
+
+  /* Extended Palette */
+  --surface-tint: #5e3bdb;
+  --primary-container: #7858f5;
+  --on-primary-container: #ffffff;
+  --surface-container-low: #f8f9ff;
+  --surface-container: #f3f0ff;
+  --surface-container-high: #e9e4ff;
+  --on-surface-variant: #4b5563;
+  --outline: #797586;
+  --outline-variant: #c9c4d7;
+  --inverse-surface: #2e3135;
+  --inverse-on-surface: #eff0f6;
+  --navy: #1e3a5f;
 }
 
 .dark {
-  --background: #000000;
-  --foreground: #ffffff;
-  --card: #111111;
-  --card-foreground: #ffffff;
-  --popover: #111111;
-  --popover-foreground: #ffffff;
-  --primary: #ffffff;
-  --primary-foreground: #000000;
-  --secondary: #222222;
-  --secondary-foreground: #ffffff;
-  --muted: #222222;
-  --muted-foreground: #cccccc;
-  --accent: #222222;
-  --accent-foreground: #ffffff;
-  --destructive: #ff4a4a;
-  --border: #333333;
-  --input: #333333;
-  --ring: #ffffff;
-  --radius: 0px;
+  --background: #0f172a;
+  --foreground: #f1f5f9;
+
+  --card: #1e293b;
+  --card-foreground: #f1f5f9;
+  --popover: #1e293b;
+  --popover-foreground: #f1f5f9;
+
+  --primary: #9f85ff;
+  --primary-foreground: #1c0062;
+
+  --secondary: #39e18f;
+  --secondary-foreground: #002110;
+
+  --muted: #334155;
+  --muted-foreground: #94a3b8;
+
+  --accent: #1e293b;
+  --accent-foreground: #c4b5fd;
+
+  --destructive: #ef4444;
+
+  --border: #334155;
+  --input: #334155;
+  --ring: #9f85ff;
+  --radius: 0.75rem;
+
+  --surface-tint: #9f85ff;
+  --primary-container: #5e3bdb;
+  --on-primary-container: #ffffff;
+  --surface-container-low: #1e293b;
+  --surface-container: #1e293b;
+  --surface-container-high: #334155;
+  --on-surface-variant: #94a3b8;
+  --outline: #64748b;
+  --outline-variant: #475569;
+  --inverse-surface: #f1f5f9;
+  --inverse-on-surface: #0f172a;
+  --navy: #1e3a5f;
 }
 
+/* ══════════════════════════════════════════════════════════
+   BASE LAYER
+   ══════════════════════════════════════════════════════════ */
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -101,5 +163,82 @@
   }
   html {
     @apply font-sans;
+    scroll-behavior: smooth;
   }
 }
+
+/* ══════════════════════════════════════════════════════════
+   UTILITY CLASSES — Landing page specific
+   ══════════════════════════════════════════════════════════ */
+
+/* Hero section radial gradient */
+.hero-gradient {
+  background:
+    radial-gradient(circle at 70% 20%, rgba(94, 59, 219, 0.08), transparent 50%),
+    radial-gradient(circle at 30% 80%, rgba(120, 88, 245, 0.06), transparent 50%);
+}
+
+/* Glassmorphism card */
+.glass-card {
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+/* ── Animations ───────────────────────────────────────── */
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(94, 59, 219, 0.15);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(94, 59, 219, 0.3);
+  }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+.animate-fade-up {
+  animation: fade-up 0.6s ease-out forwards;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.5s ease-out forwards;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 3s ease-in-out infinite;
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+/* Stagger children */
+.stagger-children > * {
+  opacity: 0;
+  animation: fade-up 0.5s ease-out forwards;
+}
+.stagger-children > *:nth-child(1) { animation-delay: 0ms; }
+.stagger-children > *:nth-child(2) { animation-delay: 100ms; }
+.stagger-children > *:nth-child(3) { animation-delay: 200ms; }
+.stagger-children > *:nth-child(4) { animation-delay: 300ms; }

@@ -34,10 +34,16 @@ export default function SuccessPage() {
           </p>
         </CardContent>
         <CardFooter className="flex flex-col gap-4 mt-2">
-          <Button asChild className="w-full rounded-none h-12 font-bold uppercase tracking-widest text-xs">
-            <Link href="/dashboard" className="w-full h-full flex items-center justify-center">
-              Go to Dashboard
-            </Link>
+          <Button
+            render={
+              <Link
+                href="/dashboard"
+                className="w-full h-full flex items-center justify-center"
+              />
+            }
+            className="w-full rounded-none h-12 font-bold uppercase tracking-widest text-xs"
+          >
+            Go to Dashboard
           </Button>
         </CardFooter>
       </Card>

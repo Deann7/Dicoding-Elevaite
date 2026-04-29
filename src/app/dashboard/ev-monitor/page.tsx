@@ -22,28 +22,131 @@ import { Badge } from "@/components/ui/badge";
 
 // --- MOCK DATA for when Supabase table doesn't exist yet ---
 const MOCK_PALLETS: Pallet[] = [
-  { id: "1", pallet_code: "B-101", temperature: 22, humidity: 48, status: "OK", location: "Zone A · Rack 1", cell_count: 48, vendor_name: "CATL", last_updated: new Date().toISOString(), alert_reason: null },
-  { id: "2", pallet_code: "B-102", temperature: 24, humidity: 51, status: "OK", location: "Zone A · Rack 2", cell_count: 48, vendor_name: "CATL", last_updated: new Date().toISOString(), alert_reason: null },
-  { id: "3", pallet_code: "B-103", temperature: 26, humidity: 55, status: "OK", location: "Zone B · Rack 1", cell_count: 96, vendor_name: "LG Chem", last_updated: new Date().toISOString(), alert_reason: null },
-  { id: "4", pallet_code: "B-104", temperature: 28, humidity: 59, status: "OK", location: "Zone B · Rack 2", cell_count: 96, vendor_name: "LG Chem", last_updated: new Date().toISOString(), alert_reason: null },
-  { id: "5", pallet_code: "B-105", temperature: 37, humidity: 66, status: "ON HOLD", location: "Zone C · Rack 1", cell_count: 48, vendor_name: "Panasonic", last_updated: new Date().toISOString(), alert_reason: "WARNING: Temperature 37°C above safe range (35°C). Pending inspection." },
-  { id: "6", pallet_code: "B-106", temperature: 21, humidity: 45, status: "OK", location: "Zone C · Rack 2", cell_count: 72, vendor_name: "Samsung SDI", last_updated: new Date().toISOString(), alert_reason: null },
-  { id: "7", pallet_code: "B-107", temperature: 23, humidity: 50, status: "OK", location: "Zone D · Rack 1", cell_count: 72, vendor_name: "Samsung SDI", last_updated: new Date().toISOString(), alert_reason: null },
-  { id: "8", pallet_code: "B-108", temperature: 25, humidity: 52, status: "OK", location: "Zone D · Rack 2", cell_count: 48, vendor_name: "CATL", last_updated: new Date().toISOString(), alert_reason: null },
+  {
+    id: "1",
+    pallet_code: "B-101",
+    temperature: 22,
+    humidity: 48,
+    status: "OK",
+    location: "Zone A · Rack 1",
+    cell_count: 48,
+    vendor_name: "CATL",
+    last_updated: new Date().toISOString(),
+    alert_reason: null,
+  },
+  {
+    id: "2",
+    pallet_code: "B-102",
+    temperature: 24,
+    humidity: 51,
+    status: "OK",
+    location: "Zone A · Rack 2",
+    cell_count: 48,
+    vendor_name: "CATL",
+    last_updated: new Date().toISOString(),
+    alert_reason: null,
+  },
+  {
+    id: "3",
+    pallet_code: "B-103",
+    temperature: 26,
+    humidity: 55,
+    status: "OK",
+    location: "Zone B · Rack 1",
+    cell_count: 96,
+    vendor_name: "LG Chem",
+    last_updated: new Date().toISOString(),
+    alert_reason: null,
+  },
+  {
+    id: "4",
+    pallet_code: "B-104",
+    temperature: 28,
+    humidity: 59,
+    status: "OK",
+    location: "Zone B · Rack 2",
+    cell_count: 96,
+    vendor_name: "LG Chem",
+    last_updated: new Date().toISOString(),
+    alert_reason: null,
+  },
+  {
+    id: "5",
+    pallet_code: "B-105",
+    temperature: 37,
+    humidity: 66,
+    status: "ON HOLD",
+    location: "Zone C · Rack 1",
+    cell_count: 48,
+    vendor_name: "Panasonic",
+    last_updated: new Date().toISOString(),
+    alert_reason:
+      "WARNING: Temperature 37°C above safe range (35°C). Pending inspection.",
+  },
+  {
+    id: "6",
+    pallet_code: "B-106",
+    temperature: 21,
+    humidity: 45,
+    status: "OK",
+    location: "Zone C · Rack 2",
+    cell_count: 72,
+    vendor_name: "Samsung SDI",
+    last_updated: new Date().toISOString(),
+    alert_reason: null,
+  },
+  {
+    id: "7",
+    pallet_code: "B-107",
+    temperature: 23,
+    humidity: 50,
+    status: "OK",
+    location: "Zone D · Rack 1",
+    cell_count: 72,
+    vendor_name: "Samsung SDI",
+    last_updated: new Date().toISOString(),
+    alert_reason: null,
+  },
+  {
+    id: "8",
+    pallet_code: "B-108",
+    temperature: 25,
+    humidity: 52,
+    status: "OK",
+    location: "Zone D · Rack 2",
+    cell_count: 48,
+    vendor_name: "CATL",
+    last_updated: new Date().toISOString(),
+    alert_reason: null,
+  },
 ];
 
 type AlertEntry = { id: string; message: string; type: "warn" | "critical" };
 
 export default function EvMonitorPage() {
-  const [pallets, setPallets] = useState<Pallet[]>(MOCK_PALLETS);
+  const [pallets, setPallets] = useState<Pallet[]>([]);
   const [selectedPallet, setSelectedPallet] = useState<Pallet | null>(null);
   const [showCopilot, setShowCopilot] = useState(false);
   const [liveAlerts, setLiveAlerts] = useState<AlertEntry[]>([]);
   const [isConnected, setIsConnected] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 6;
   const supabase = createClient();
 
-  // Try to subscribe to Supabase Realtime
+  // Try to subscribe to Supabase Realtime and fetch initial data
   useEffect(() => {
+    const fetchInitialData = async () => {
+      const { data } = await supabase
+        .from("pallets")
+        .select("*")
+        .order("pallet_code");
+      if (data) setPallets(data);
+      setIsLoading(false);
+    };
+
+    fetchInitialData();
+
     const channel = supabase
       .channel("pallets-realtime")
       .on(
@@ -54,12 +157,12 @@ export default function EvMonitorPage() {
           setIsConnected(true);
 
           setPallets((prev) =>
-            prev.map((p) => (p.id === updated.id ? { ...p, ...updated } : p))
+            prev.map((p) => (p.id === updated.id ? { ...p, ...updated } : p)),
           );
 
           // Update selected pallet if it's the one being updated
           setSelectedPallet((prev) =>
-            prev?.id === updated.id ? { ...prev, ...updated } : prev
+            prev?.id === updated.id ? { ...prev, ...updated } : prev,
           );
 
           // Fire alert if status changed to danger
@@ -76,13 +179,15 @@ export default function EvMonitorPage() {
               setShowCopilot(true);
             }
           }
-        }
+        },
       )
       .subscribe((status) => {
         if (status === "SUBSCRIBED") setIsConnected(true);
       });
 
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [supabase]);
 
   const handleSelectPallet = useCallback((pallet: Pallet) => {
@@ -90,14 +195,21 @@ export default function EvMonitorPage() {
     setShowCopilot(true);
   }, []);
 
+  // Pagination logic
+  const totalPages = Math.ceil(pallets.length / itemsPerPage);
+  const currentPallets = pallets.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage,
+  );
+
   const okCount = pallets.filter((p) => p.status === "OK").length;
   const holdCount = pallets.filter((p) => p.status === "ON HOLD").length;
   const rejectCount = pallets.filter((p) => p.status === "REJECT").length;
 
   return (
-    <div className="flex h-full overflow-hidden -m-6 md:-m-8">
+    <div className="flex h-full  -m-6 md:-m-8">
       {/* MAIN PANEL */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col ">
         {/* Header */}
         <div className="px-6 py-4 border-b border-black/10 bg-white shrink-0">
           <div className="flex items-center justify-between">
@@ -117,8 +229,12 @@ export default function EvMonitorPage() {
 
             <div className="flex items-center gap-3">
               {/* Connection status */}
-              <div className={`flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest px-2 py-1 border ${isConnected ? "text-green-700 border-green-300 bg-green-50" : "text-black/40 border-black/10 bg-black/5"}`}>
-                <Wifi className={`h-3 w-3 ${isConnected ? "text-green-600" : "text-black/30"}`} />
+              <div
+                className={`flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest px-2 py-1 border ${isConnected ? "text-green-700 border-green-300 bg-green-50" : "text-black/40 border-black/10 bg-black/5"}`}
+              >
+                <Wifi
+                  className={`h-3 w-3 ${isConnected ? "text-green-600" : "text-black/30"}`}
+                />
                 {isConnected ? "Live" : "Demo Mode"}
               </div>
 
@@ -138,26 +254,42 @@ export default function EvMonitorPage() {
           <div className="flex gap-6 mt-4">
             <div className="flex items-center gap-2">
               <CheckCircle2 className="h-4 w-4 text-green-600" />
-              <span className="font-mono font-bold text-lg text-green-700">{okCount}</span>
-              <span className="text-xs text-black/50 uppercase tracking-widest">OK</span>
+              <span className="font-mono font-bold text-lg text-green-700">
+                {okCount}
+              </span>
+              <span className="text-xs text-black/50 uppercase tracking-widest">
+                OK
+              </span>
             </div>
             <div className="w-px bg-black/10" />
             <div className="flex items-center gap-2">
               <Clock className="h-4 w-4 text-yellow-600" />
-              <span className="font-mono font-bold text-lg text-yellow-700">{holdCount}</span>
-              <span className="text-xs text-black/50 uppercase tracking-widest">On Hold</span>
+              <span className="font-mono font-bold text-lg text-yellow-700">
+                {holdCount}
+              </span>
+              <span className="text-xs text-black/50 uppercase tracking-widest">
+                On Hold
+              </span>
             </div>
             <div className="w-px bg-black/10" />
             <div className="flex items-center gap-2">
               <AlertTriangle className="h-4 w-4 text-red-600" />
-              <span className="font-mono font-bold text-lg text-red-700">{rejectCount}</span>
-              <span className="text-xs text-black/50 uppercase tracking-widest">Reject</span>
+              <span className="font-mono font-bold text-lg text-red-700">
+                {rejectCount}
+              </span>
+              <span className="text-xs text-black/50 uppercase tracking-widest">
+                Reject
+              </span>
             </div>
             <div className="w-px bg-black/10" />
             <div className="flex items-center gap-2">
               <Battery className="h-4 w-4 text-black/50" />
-              <span className="font-mono font-bold text-lg">{pallets.length}</span>
-              <span className="text-xs text-black/50 uppercase tracking-widest">Total Pallets</span>
+              <span className="font-mono font-bold text-lg">
+                {pallets.length}
+              </span>
+              <span className="text-xs text-black/50 uppercase tracking-widest">
+                Total Pallets
+              </span>
             </div>
           </div>
         </div>
@@ -178,10 +310,18 @@ export default function EvMonitorPage() {
                 >
                   <BatteryWarning className="h-4 w-4 shrink-0 animate-pulse" />
                   <span className="font-bold uppercase tracking-widest">
-                    {alert.type === "critical" ? "⚡ CRITICAL ALERT:" : "⚠️ WARNING:"}
+                    {alert.type === "critical"
+                      ? "⚡ CRITICAL ALERT:"
+                      : "⚠️ WARNING:"}
                   </span>
                   <span className="flex-1">{alert.message}</span>
-                  <button onClick={() => setLiveAlerts((prev) => prev.filter((a) => a.id !== alert.id))}>
+                  <button
+                    onClick={() =>
+                      setLiveAlerts((prev) =>
+                        prev.filter((a) => a.id !== alert.id),
+                      )
+                    }
+                  >
                     <X className="h-4 w-4" />
                   </button>
                 </div>
@@ -190,26 +330,81 @@ export default function EvMonitorPage() {
           )}
         </AnimatePresence>
 
-        {/* Pallet Grid */}
-        <div className="flex-1 overflow-auto p-6">
-          {!isConnected && (
-            <div className="mb-4 p-3 bg-black/5 border border-black/10 text-xs font-mono text-black/50 flex items-center gap-2">
-              <RefreshCw className="h-3.5 w-3.5" />
-              Running in Demo Mode — Supabase Realtime not connected. Run{" "}
-              <code className="bg-black text-white px-1">node scripts/iot-simulator.js B-105</code> to trigger a live anomaly.
+        {/* PALLET GRID */}
+        <div className="p-6 md:p-8 flex-1 overflow-auto pb-24">
+          {isLoading ? (
+            <div className="flex items-center justify-center h-40 text-sm text-black/50 font-mono">
+              <RefreshCw className="h-5 w-5 animate-spin mr-2" /> Loading
+              pallets...
+            </div>
+          ) : pallets.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-40 text-black/50 font-mono text-sm">
+              No pallets found in database.
+            </div>
+          ) : (
+            <div className="flex flex-col h-full justify-between gap-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {currentPallets.map((pallet) => (
+                  <PalletCard
+                    key={pallet.id}
+                    pallet={pallet}
+                    isSelected={selectedPallet?.id === pallet.id}
+                    onSelect={handleSelectPallet}
+                  />
+                ))}
+              </div>
+
+              {/* PAGINATION */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between mt-auto border-t border-black/10 pt-4">
+                  <p className="text-xs font-medium text-black/50 uppercase tracking-widest hidden sm:block">
+                    Showing {(currentPage - 1) * itemsPerPage + 1}-
+                    {Math.min(currentPage * itemsPerPage, pallets.length)} of{" "}
+                    {pallets.length} pallets
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="rounded-none border-black/20 text-xs font-bold uppercase tracking-widest"
+                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
+                    >
+                      Prev
+                    </Button>
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: totalPages }).map((_, i) => (
+                        <Button
+                          key={i}
+                          variant="outline"
+                          size="sm"
+                          className={`rounded-none border-black/20 text-xs font-bold uppercase tracking-widest w-8 h-8 p-0 ${
+                            currentPage === i + 1
+                              ? "bg-black text-white hover:bg-black/90"
+                              : "hover:bg-black/5"
+                          }`}
+                          onClick={() => setCurrentPage(i + 1)}
+                        >
+                          {i + 1}
+                        </Button>
+                      ))}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="rounded-none border-black/20 text-xs font-bold uppercase tracking-widest"
+                      onClick={() =>
+                        setCurrentPage((p) => Math.min(totalPages, p + 1))
+                      }
+                      disabled={currentPage === totalPages}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {pallets.map((pallet) => (
-              <PalletCard
-                key={pallet.id}
-                pallet={pallet}
-                isSelected={selectedPallet?.id === pallet.id}
-                onSelect={handleSelectPallet}
-              />
-            ))}
-          </div>
         </div>
       </div>
 
