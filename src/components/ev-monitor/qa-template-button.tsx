@@ -83,9 +83,11 @@ export function QaTemplateButton() {
       </html>
     `;
 
-    const blob = new Blob(['\ufeff', htmlContent], { type: 'application/msword' });
+    const blob = new Blob(["\ufeff", htmlContent], {
+      type: "application/msword",
+    });
     const url = URL.createObjectURL(blob);
-    
+
     const link = document.createElement("a");
     link.href = url;
     link.setAttribute("download", "EV_Battery_QA_Template.doc");
@@ -95,10 +97,10 @@ export function QaTemplateButton() {
   };
 
   return (
-    <Button 
+    <Button
       onClick={handleDownload}
-      variant="outline" 
-      className="rounded-none font-bold uppercase tracking-widest text-xs h-10 px-4 gap-2 border-black/20 hover:bg-black/5"
+      variant="outline"
+      className="rounded-full bg-blue-900 font-bold uppercase tracking-widest text-xs h-10 px-4 gap-2 border-white/20 hover:bg-white/5"
     >
       <Download className="h-4 w-4" />
       QA Template (Docs)

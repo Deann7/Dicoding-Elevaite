@@ -32,37 +32,46 @@ export async function POST(req: NextRequest) {
     // Use Azure OpenAI if API keys are available, otherwise use rule-based fallback
     const azureEndpoint = process.env.AZURE_COPILOT_ENDPOINT;
     const azureApiKey = process.env.AZURE_COPILOT_INTELLIGENCE_KEY;
-    const deploymentName = process.env.AZURE_COPILOT_DEPLOYMENT || "gpt-4.1-mini";
+    const deploymentName =
+      process.env.AZURE_COPILOT_DEPLOYMENT || "gpt-4.1-mini-2";
+    const apiVersion = "2025-01-01-preview";
 
     if (azureEndpoint && azureApiKey) {
+      // ── Verbose Connection Info ──────────────────────────────────────
+      console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+      console.log("🔵 [Azure AI] Initiating request...");
+      console.log("🔹 Endpoint   :", azureEndpoint);
+      console.log("🔹 Deployment :", deploymentName);
+      console.log("🔹 API Version:", apiVersion);
+      console.log("🔹 Api Key    :", azureApiKey);
+      console.log("🔹 Pallet     :", pallet.pallet_code);
+      console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+
       try {
-        const apiVersion = "2024-04-01-preview";
-        const options = {
+        console.log(azureApiKey);
+        const client = new AzureOpenAI({
           endpoint: azureEndpoint,
           apiKey: azureApiKey,
           deployment: deploymentName,
           apiVersion,
-        };
+        });
 
-        const client = new AzureOpenAI(options);
+        console.log("🔵 [Azure AI] Sending chat completion request...");
 
         const aiResponse = await client.chat.completions.create({
+          model: deploymentName,
           messages: [
             {
               role: "system",
-              content: "You are a manufacturing quality analyst generating professional incident reports for an EV battery storage facility. Provide structured, data-driven analysis with clear action items.",
+              content:
+                "You are a manufacturing quality analyst generating professional incident reports for an EV battery storage facility. Provide structured, data-driven analysis with clear action items.",
             },
             {
               role: "user",
               content: `Please generate a professional incident report for the following battery storage anomaly:\n\nPallet ID: ${pallet.pallet_code}\nStorage Location: ${pallet.location}\nSupplier: ${pallet.vendor_name || pallet.vendor}\nUnit Count: ${pallet.cell_count}\nRecorded Temperature: ${pallet.temperature}°C\nHumidity Level: ${pallet.humidity ?? "N/A"}%\nCurrent Status: ${pallet.status}\nAlert Description: ${pallet.alert_reason}\nRecorded At: ${pallet.last_updated}\n\nStructure the report with these sections:\n1. Incident Summary\n2. Risk Assessment\n3. Immediate Actions Required\n4. Recommended Next Steps`,
             },
           ],
-          max_completion_tokens: 800,
-          temperature: 1,
-          top_p: 1,
-          frequency_penalty: 0,
-          presence_penalty: 0,
-          model: deploymentName,
+          max_tokens: 800,
         });
 
         if ((aiResponse as any)?.error !== undefined) {
@@ -71,17 +80,82 @@ export async function POST(req: NextRequest) {
 
         const report = aiResponse.choices[0]?.message?.content;
         if (report) {
-          console.log("✅ Azure AI report generated successfully");
+          console.log("✅ [Azure AI] Report generated successfully.");
+          console.log(
+            "🔹 Tokens used:",
+            aiResponse.usage?.total_tokens ?? "N/A",
+          );
           return NextResponse.json({ report, pallet });
         }
-        throw new Error("Empty response from AI");
+
+        throw new Error(
+          "Empty response from AI — choices array was empty or content was null.",
+        );
       } catch (aiErr: any) {
-        console.error("⚠️ Azure AI failed, using fallback. Error:", aiErr?.message || aiErr?.status);
-        // Gracefully fall through to rule-based report
+        // ── Verbose Error Logging ────────────────────────────────────
+        const errStatus = aiErr?.status ?? aiErr?.statusCode ?? "N/A";
+        const errCode = aiErr?.code ?? aiErr?.error?.code ?? "N/A";
+        const errType = aiErr?.name ?? aiErr?.type ?? "UnknownError";
+        const errMsg = aiErr?.message ?? "(no message)";
+        const errReqId =
+          aiErr?.request_id ?? aiErr?.headers?.["x-request-id"] ?? "N/A";
+        const errBody = aiErr?.error
+          ? JSON.stringify(aiErr.error, null, 2)
+          : "(no structured body)";
+
+        console.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        console.error("⚠️  AZURE OPENAI — VERBOSE ERROR LOG");
+        console.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        console.error("🔹 Message     :", errMsg);
+        console.error("🔹 Error Type  :", errType);
+        console.error("🔹 HTTP Status :", errStatus);
+        console.error("🔹 Error Code  :", errCode);
+        console.error("🔹 Request ID  :", errReqId);
+        console.error("🔹 Deployment  :", deploymentName);
+        console.error("🔹 API Version :", apiVersion);
+        console.error("🔹 Endpoint    :", azureEndpoint);
+        console.error("🔹 Azure Body  :", errBody);
+
+        // Log response headers if present
+        if (aiErr?.headers) {
+          try {
+            const headers =
+              typeof aiErr.headers.entries === "function"
+                ? Object.fromEntries(aiErr.headers.entries())
+                : aiErr.headers;
+            console.error("🔹 Resp Headers:", JSON.stringify(headers, null, 2));
+          } catch {
+            console.error("🔹 Resp Headers: (could not serialize)");
+          }
+        }
+
+        console.error("🔹 Full Stack  :", aiErr?.stack ?? "(no stack trace)");
+        console.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+        console.warn("⚠️  Falling back to rule-based report generation.");
+
+        // Return fallback report with full error detail for the client/frontend
+        const fallbackReport = generateRuleBasedReport(pallet);
+        return NextResponse.json({
+          report: fallbackReport,
+          pallet,
+          ai_fallback: true,
+          ai_error: {
+            message: errMsg,
+            type: errType,
+            status: errStatus,
+            code: errCode,
+            request_id: errReqId,
+            deployment: deploymentName,
+            api_version: apiVersion,
+            endpoint: azureEndpoint,
+            body: aiErr?.error ?? null,
+          },
+        });
       }
     }
 
-    // Fallback: Rule-based report (no API key needed — perfect for demo offline)
+    // No keys configured — silent fallback
+    console.warn("⚠️  Azure AI env vars not set. Using rule-based fallback.");
     const report = generateRuleBasedReport(pallet);
     return NextResponse.json({ report, pallet, ai_fallback: true });
   } catch (err: any) {
@@ -113,7 +187,7 @@ Pallet ${pallet.pallet_code} at ${pallet.location} (Vendor: ${pallet.vendor}) ha
 
 [2] RISK ASSESSMENT
 Severity: ${riskLevel}
-${temp >= 42 ? "⚠️ THERMAL RUNAWAY risk detected. High probability of electrolyte ignition if not addressed immediately. This pallet contains ${pallet.cell_count} lithium cells." : "📊 Elevated temperature requires monitoring. No immediate thermal runaway risk, but continued exposure may degrade battery capacity and lifespan."}
+${temp >= 42 ? `⚠️ THERMAL RUNAWAY risk detected. High probability of electrolyte ignition if not addressed immediately. This pallet contains ${pallet.cell_count} lithium cells.` : "📊 Elevated temperature requires monitoring. No immediate thermal runaway risk, but continued exposure may degrade battery capacity and lifespan."}
 
 [3] IMMEDIATE ACTIONS REQUIRED
 • ✅ Auto-quarantine zone isolation: ACTIVATED
