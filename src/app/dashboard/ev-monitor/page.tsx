@@ -130,6 +130,8 @@ export default function EvMonitorPage() {
   const [liveAlerts, setLiveAlerts] = useState<AlertEntry[]>([]);
   const [isConnected, setIsConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 6;
   const supabase = createClient();
 
   // Try to subscribe to Supabase Realtime and fetch initial data
@@ -192,6 +194,13 @@ export default function EvMonitorPage() {
     setSelectedPallet(pallet);
     setShowCopilot(true);
   }, []);
+
+  // Pagination logic
+  const totalPages = Math.ceil(pallets.length / itemsPerPage);
+  const currentPallets = pallets.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage,
+  );
 
   const okCount = pallets.filter((p) => p.status === "OK").length;
   const holdCount = pallets.filter((p) => p.status === "ON HOLD").length;
@@ -321,27 +330,82 @@ export default function EvMonitorPage() {
           )}
         </AnimatePresence>
 
-        {isLoading ? (
-          <div className="flex items-center justify-center h-40 text-sm text-black/50 font-mono">
-            <RefreshCw className="h-5 w-5 animate-spin mr-2" /> Loading
-            pallets...
-          </div>
-        ) : pallets.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-40 text-black/50 font-mono text-sm">
-            No pallets found in database.
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {pallets.map((pallet) => (
-              <PalletCard
-                key={pallet.id}
-                pallet={pallet}
-                isSelected={selectedPallet?.id === pallet.id}
-                onSelect={handleSelectPallet}
-              />
-            ))}
-          </div>
-        )}
+        {/* PALLET GRID */}
+        <div className="p-6 md:p-8 flex-1 overflow-auto pb-24">
+          {isLoading ? (
+            <div className="flex items-center justify-center h-40 text-sm text-black/50 font-mono">
+              <RefreshCw className="h-5 w-5 animate-spin mr-2" /> Loading
+              pallets...
+            </div>
+          ) : pallets.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-40 text-black/50 font-mono text-sm">
+              No pallets found in database.
+            </div>
+          ) : (
+            <div className="flex flex-col h-full justify-between gap-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {currentPallets.map((pallet) => (
+                  <PalletCard
+                    key={pallet.id}
+                    pallet={pallet}
+                    isSelected={selectedPallet?.id === pallet.id}
+                    onSelect={handleSelectPallet}
+                  />
+                ))}
+              </div>
+
+              {/* PAGINATION */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between mt-auto border-t border-black/10 pt-4">
+                  <p className="text-xs font-medium text-black/50 uppercase tracking-widest hidden sm:block">
+                    Showing {(currentPage - 1) * itemsPerPage + 1}-
+                    {Math.min(currentPage * itemsPerPage, pallets.length)} of{" "}
+                    {pallets.length} pallets
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="rounded-none border-black/20 text-xs font-bold uppercase tracking-widest"
+                      onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                      disabled={currentPage === 1}
+                    >
+                      Prev
+                    </Button>
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: totalPages }).map((_, i) => (
+                        <Button
+                          key={i}
+                          variant="outline"
+                          size="sm"
+                          className={`rounded-none border-black/20 text-xs font-bold uppercase tracking-widest w-8 h-8 p-0 ${
+                            currentPage === i + 1
+                              ? "bg-black text-white hover:bg-black/90"
+                              : "hover:bg-black/5"
+                          }`}
+                          onClick={() => setCurrentPage(i + 1)}
+                        >
+                          {i + 1}
+                        </Button>
+                      ))}
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="rounded-none border-black/20 text-xs font-bold uppercase tracking-widest"
+                      onClick={() =>
+                        setCurrentPage((p) => Math.min(totalPages, p + 1))
+                      }
+                      disabled={currentPage === totalPages}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* COPILOT SIDE PANEL */}
