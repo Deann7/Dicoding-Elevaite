@@ -46,6 +46,8 @@ export default function LogsPage() {
   const [logs, setLogs] = useState<LogRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
   const supabase = createClient();
 
   const fetchLogs = useCallback(async () => {
@@ -308,7 +310,7 @@ export default function LogsPage() {
                   </TableCell>
                 </TableRow>
               )}
-              {logs.map((log) => (
+              {logs.slice((currentPage - 1) * pageSize, currentPage * pageSize).map((log) => (
                 <TableRow
                   key={log.id}
                   className="border-b border-black/10 hover:bg-black/5 transition-colors group"
@@ -365,32 +367,43 @@ export default function LogsPage() {
         </CardContent>
       </Card>
 
-      {/* PAGINATION (MOCK) */}
+      {/* PAGINATION */}
       <div className="flex items-center justify-between mt-4">
         <p className="text-xs font-medium text-black/50 uppercase tracking-widest">
-          Showing 1-{Math.min(logs.length, 50)} of {logs.length} records
+          Showing {Math.min((currentPage - 1) * pageSize + 1, logs.length)}-
+          {Math.min(currentPage * pageSize, logs.length)} of {logs.length} records
         </p>
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
             size="sm"
             className="rounded-none border-black/20 text-xs font-bold uppercase tracking-widest"
-            disabled
+            disabled={currentPage === 1}
+            onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
           >
             Prev
           </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            className="rounded-none border-black/20 text-xs font-bold uppercase tracking-widest bg-black text-white hover:bg-black/90"
-          >
-            1
-          </Button>
+          <div className="flex items-center gap-1">
+            {Array.from({ length: Math.ceil(logs.length / pageSize) }, (_, i) => (
+              <Button
+                key={i + 1}
+                variant="outline"
+                size="sm"
+                className={`rounded-none border-black/20 text-xs font-bold uppercase tracking-widest w-8 h-8 p-0 ${
+                  currentPage === i + 1 ? "bg-black text-white hover:bg-black/90" : ""
+                }`}
+                onClick={() => setCurrentPage(i + 1)}
+              >
+                {i + 1}
+              </Button>
+            )).slice(Math.max(0, currentPage - 3), Math.min(Math.ceil(logs.length / pageSize), currentPage + 2))}
+          </div>
           <Button
             variant="outline"
             size="sm"
             className="rounded-none border-black/20 text-xs font-bold uppercase tracking-widest"
-            disabled
+            disabled={currentPage === Math.ceil(logs.length / pageSize) || logs.length === 0}
+            onClick={() => setCurrentPage((prev) => prev + 1)}
           >
             Next
           </Button>
