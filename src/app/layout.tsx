@@ -3,6 +3,7 @@ import { Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { LenisProvider } from "@/components/providers/lenis-provider";
+import { Toaster } from "sonner";
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
@@ -10,7 +11,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Elevaite Volt-Guard — AI-Driven EV Battery Inventory",
+  title: "Elevaite Volt-Guard",
   description:
     "Sistem manajemen inventaris pintar untuk manufaktur EV & Baterai. Otomatisasi pelacakan status barang secara real-time.",
 };
@@ -34,6 +35,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <LenisProvider>{children}</LenisProvider>
+          <Toaster position="top-right" />
         </ThemeProvider>
       </body>
     </html>

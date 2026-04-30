@@ -1,42 +1,129 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { createClient as createServerClient } from "@/utils/supabase/server";
+import { cookies } from "next/headers";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
   try {
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
-    const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
-    
-    if (!supabaseUrl || !supabaseKey) {
-      return NextResponse.json({ error: "Supabase configuration missing" }, { status: 500 });
+    // ── Gunakan serverClient yang membawa JWT user via cookie ──
+    // auth.uid() akan terset otomatis → RLS bekerja dengan benar
+    const cookieStore = await cookies();
+    const supabase = createServerClient(cookieStore);
+
+    // Validasi session
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: "Unauthorized — silakan login" },
+        { status: 401 },
+      );
     }
 
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const userId = user.id;
+    console.log("[QA Release] Authenticated user:", userId);
 
+    // Parse body
     const body = await req.json();
-    const { pallet_code, document_name, avg_voltage, impedance, ai_confidence, passed_qa, fail_reason } = body;
+    const {
+      pallet_code,
+      document_name,
+      avg_voltage,
+      impedance,
+      ai_confidence,
+      passed_qa,
+      fail_reason,
+    } = body;
 
     if (!pallet_code) {
-      return NextResponse.json({ error: "Pallet code required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "pallet_code required" },
+        { status: 400 },
+      );
     }
 
-    // Panggil RPC release_pallet_from_qa di database
-    const { data, error } = await supabase.rpc("release_pallet_from_qa", {
-      p_pallet_code: pallet_code,
-      p_document_name: document_name,
-      p_avg_voltage: avg_voltage,
-      p_impedance: impedance,
-      p_ai_confidence: ai_confidence,
-      p_passed_qa: passed_qa,
-      p_fail_reason: fail_reason || null
+    const newStatus = passed_qa ? "OK" : "REJECT";
+
+    // ── Cek apakah pallet sudah ada milik user ini ──────────────
+    const { data: existing } = await supabase
+      .from("pallets")
+      .select("id, user_id")
+      .eq("pallet_code", pallet_code)
+      .maybeSingle();
+
+    let palletId: string | null = null;
+
+    if (existing) {
+      // Pallet sudah ada — update statusnya
+      console.log("[QA Release] Pallet ditemukan, update status →", newStatus);
+      const { data: updated, error: updateErr } = await supabase
+        .from("pallets")
+        .update({
+          status: newStatus,
+          alert_reason: fail_reason || null,
+          last_updated: new Date().toISOString(),
+        })
+        .eq("id", existing.id)
+        .select("id")
+        .single();
+
+      if (updateErr) {
+        console.error("[QA Release] Update gagal:", updateErr.message);
+        throw updateErr;
+      }
+      palletId = updated?.id ?? existing.id;
+    } else {
+      console.log("[QA Release] Pallet baru, insert pallet_code:", pallet_code);
+      const { data: inserted, error: insertErr } = await supabase
+        .from("pallets")
+        .insert({
+          pallet_code,
+          status: newStatus,
+          vendor_name: "CATL", // FK ke tabel vendors — harus nilai yang valid
+          temperature: 25.0,
+          humidity: 50.0,
+          cell_count: 48,
+          location: "QA Station",
+          alert_reason: fail_reason || null,
+          last_updated: new Date().toISOString(),
+          user_id: userId,
+        })
+        .select("id")
+        .single();
+
+      if (insertErr) {
+        console.error("[QA Release] Insert gagal:", insertErr.message);
+        throw insertErr;
+      }
+      palletId = inserted?.id ?? null;
+    }
+
+    // ── Insert QA inspection record ─────────────────────────────
+    const { error: qaErr } = await supabase.from("qa_inspections").insert({
+      pallet_code,
+      document_name,
+      avg_voltage,
+      impedance,
+      ai_confidence,
+      passed_qa,
+      fail_reason: fail_reason || null,
+      user_id: userId,
     });
 
-    if (error) throw error;
+    if (qaErr) {
+      console.warn(
+        "[QA Release] qa_inspections insert non-fatal:",
+        qaErr.message,
+      );
+    }
 
-    return NextResponse.json({ success: true, data });
+    console.log("[QA Release] Selesai ✓ pallet_id:", palletId);
+    return NextResponse.json({ success: true, pallet_id: palletId });
   } catch (error: any) {
-    console.error("Supabase Error:", error);
+    console.error("[QA Release] Error:", error.message);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

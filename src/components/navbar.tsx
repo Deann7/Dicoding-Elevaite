@@ -68,7 +68,7 @@ export async function Navbar() {
                 className={buttonVariants({
                   variant: "default",
                   className:
-                    "bg-primary hover:bg-primary-container text-primary-foreground rounded-lg font-heading text-sm font-semibold px-6 py-2.5 shadow-lg shadow-primary/20 transition-all",
+                    "hidden md:inline-flex bg-primary hover:bg-primary-container text-primary-foreground rounded-lg font-heading text-sm font-semibold px-6 py-2.5 shadow-lg shadow-primary/20 transition-all",
                 })}
               >
                 Dashboard
@@ -79,7 +79,7 @@ export async function Navbar() {
                 className={buttonVariants({
                   variant: "default",
                   className:
-                    "bg-primary hover:bg-primary-container text-primary-foreground rounded-lg font-heading text-sm font-semibold px-6 py-2.5 shadow-lg shadow-primary/20 transition-all",
+                    "hidden md:inline-flex bg-primary hover:bg-primary-container text-primary-foreground rounded-lg font-heading text-sm font-semibold px-6 py-2.5 shadow-lg shadow-primary/20 transition-all",
                 })}
               >
                 Get Started
