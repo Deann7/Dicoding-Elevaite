@@ -57,7 +57,8 @@ Sistem ini dibangun dengan arsitektur modern untuk memastikan kecepatan, keamana
 ## 📎 Informasi Pendukung [Opsional]
 *   **Studi Kasus:** Mengurangi waktu tunggu validasi QA dari 15 menit per batch menjadi kurang dari 15 detik.
 *   **Rencana Pengembangan Ke Depan:** 
-    *   Integrasi IoT langsung ke mesin penguji tegangan (Hardware-to-Cloud).
-    *   Sistem notifikasi prediktif via WhatsApp/Email untuk peringatan bahaya termal (*thermal runaway*).
+    *   **Ekspansi Fitur Komprehensif:** Memperbanyak fitur analitik dan manajemen operasional dari berbagai sisi (seperti pelacakan rantai pasok dan prediksi degradasi jangka panjang).
+    *   **Penyempurnaan Integrasi Microsoft Teams:** Menyempurnakan sistem notifikasi pintar langsung di dalam Microsoft Teams agar respons tim terhadap anomali (misalnya peringatan *thermal runaway*) menjadi lebih instan dan kolaboratif.
+    *   **Eksplorasi IoT Lanjutan:** Mencoba melakukan eksplorasi integrasi IoT secara langsung ke mesin penguji tegangan (Hardware-to-Cloud).
 *   **Tim Pengembang:**
     *   **[Nama Anda / Peran]** - Lead Engineer & AI Integrator

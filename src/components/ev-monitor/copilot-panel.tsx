@@ -50,7 +50,7 @@ export function CopilotPanel({ selectedPallet, onClose }: CopilotPanelProps) {
         animate={{ x: 0, opacity: 1 }}
         exit={{ x: "100%", opacity: 0 }}
         transition={{ type: "spring", damping: 25, stiffness: 200 }}
-        className="w-[380px] bg-[#1A1C1E] flex flex-col h-full shrink-0 shadow-2xl"
+        className="w-full md:w-[380px] bg-[#1A1C1E] flex flex-col h-full shrink-0 shadow-2xl rounded-t-3xl md:rounded-none"
       >
         {/* ── Panel Header ───────────────────────────── */}
         <div className="p-5 border-b border-white/10 bg-white/5 flex items-center justify-between shrink-0">
