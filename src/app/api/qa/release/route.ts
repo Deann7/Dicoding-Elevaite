@@ -12,9 +12,15 @@ export async function POST(req: NextRequest) {
     const supabase = createServerClient(cookieStore);
 
     // Validasi session
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
     if (authError || !user) {
-      return NextResponse.json({ error: "Unauthorized — silakan login" }, { status: 401 });
+      return NextResponse.json(
+        { error: "Unauthorized — silakan login" },
+        { status: 401 },
+      );
     }
 
     const userId = user.id;
@@ -33,7 +39,10 @@ export async function POST(req: NextRequest) {
     } = body;
 
     if (!pallet_code) {
-      return NextResponse.json({ error: "pallet_code required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "pallet_code required" },
+        { status: 400 },
+      );
     }
 
     const newStatus = passed_qa ? "OK" : "REJECT";
@@ -53,7 +62,7 @@ export async function POST(req: NextRequest) {
       const { data: updated, error: updateErr } = await supabase
         .from("pallets")
         .update({
-          status:       newStatus,
+          status: newStatus,
           alert_reason: fail_reason || null,
           last_updated: new Date().toISOString(),
         })
@@ -67,22 +76,20 @@ export async function POST(req: NextRequest) {
       }
       palletId = updated?.id ?? existing.id;
     } else {
-      // Pallet belum ada — INSERT baru
-      // serverClient otomatis bawa auth.uid() → RLS terpenuhi
       console.log("[QA Release] Pallet baru, insert pallet_code:", pallet_code);
       const { data: inserted, error: insertErr } = await supabase
         .from("pallets")
         .insert({
           pallet_code,
-          status:       newStatus,
-          vendor_name:  "CATL",       // FK ke tabel vendors — harus nilai yang valid
-          temperature:  25.0,
-          humidity:     50.0,
-          cell_count:   48,
-          location:     "QA Station",
+          status: newStatus,
+          vendor_name: "CATL", // FK ke tabel vendors — harus nilai yang valid
+          temperature: 25.0,
+          humidity: 50.0,
+          cell_count: 48,
+          location: "QA Station",
           alert_reason: fail_reason || null,
           last_updated: new Date().toISOString(),
-          user_id:      userId,
+          user_id: userId,
         })
         .select("id")
         .single();
@@ -102,17 +109,19 @@ export async function POST(req: NextRequest) {
       impedance,
       ai_confidence,
       passed_qa,
-      fail_reason:  fail_reason || null,
-      user_id:      userId,
+      fail_reason: fail_reason || null,
+      user_id: userId,
     });
 
     if (qaErr) {
-      console.warn("[QA Release] qa_inspections insert non-fatal:", qaErr.message);
+      console.warn(
+        "[QA Release] qa_inspections insert non-fatal:",
+        qaErr.message,
+      );
     }
 
     console.log("[QA Release] Selesai ✓ pallet_id:", palletId);
     return NextResponse.json({ success: true, pallet_id: palletId });
-
   } catch (error: any) {
     console.error("[QA Release] Error:", error.message);
     return NextResponse.json({ error: error.message }, { status: 500 });
