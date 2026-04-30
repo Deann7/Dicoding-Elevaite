@@ -29,6 +29,7 @@ export default function QaScannerPage() {
   const [file, setFile] = useState<File | null>(null);
   const [scanResult, setScanResult] = useState<any>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ type: "success" | "error"; title: string; msg: string } | null>(null);
 
   // Auto hide error message after 5 seconds
   useEffect(() => {
@@ -37,6 +38,14 @@ export default function QaScannerPage() {
       return () => clearTimeout(timer);
     }
   }, [errorMsg]);
+
+  // Auto hide toast after 5 seconds
+  useEffect(() => {
+    if (toast) {
+      const timer = setTimeout(() => setToast(null), 5500);
+      return () => clearTimeout(timer);
+    }
+  }, [toast]);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -71,7 +80,7 @@ export default function QaScannerPage() {
 
       setScanResult(data.metrics);
 
-      await fetch("/api/qa/release", {
+      const releaseRes = await fetch("/api/qa/release", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -87,7 +96,53 @@ export default function QaScannerPage() {
         }),
       });
 
+      const releaseData = await releaseRes.json();
+      if (!releaseRes.ok) throw new Error(releaseData.error || "Gagal menyimpan ke database");
+
+      // Trigger Teams webhook langsung jika REJECT
+      let teamsAlertSent = false;
+      if (!data.metrics.isPass) {
+        try {
+          const teamsRes = await fetch("/api/webhooks/teams", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              record: {
+                pallet_code: data.metrics.palletCode,
+                new_status: "REJECT",
+                trigger_source: "AI_QA_SCANNER",
+                temperature_at_event: null,
+                note: `Impedance ${data.metrics.impedance}mΩ / Voltage ${data.metrics.avgVoltage}V — tidak memenuhi standar QA`,
+              },
+            }),
+          });
+          const teamsData = await teamsRes.json();
+          console.log("[QA Scanner] Teams webhook response:", teamsData);
+          teamsAlertSent = teamsRes.ok && teamsData.success === true;
+        } catch (teamsErr) {
+          console.error("[QA Scanner] Gagal memanggil Teams webhook:", teamsErr);
+          teamsAlertSent = false;
+        }
+      }
+
       setScanComplete(true);
+
+      // Tampilkan toast sukses/gagal
+      if (data.metrics.isPass) {
+        setToast({
+          type: "success",
+          title: "✅ Data Berhasil Disimpan!",
+          msg: `Pallet ${data.metrics.palletCode} telah masuk ke EV Battery Monitor dengan status OK / RELEASED.`,
+        });
+      } else {
+        setToast({
+          type: "error",
+          title: "🚨 Pallet Ditolak & Dikarantina",
+          msg: teamsAlertSent
+            ? `Pallet ${data.metrics.palletCode} status REJECT. Data tersimpan & alert Teams berhasil terkirim.`
+            : `Pallet ${data.metrics.palletCode} status REJECT. Data tersimpan, namun alert Teams GAGAL — cek MS_TEAMS_WEBHOOK_URL di .env & log terminal.`,
+        });
+      }
     } catch (err: any) {
       setErrorMsg(err.message);
     } finally {
@@ -97,27 +152,48 @@ export default function QaScannerPage() {
 
   return (
     <div className="max-w-[1600px] mx-auto space-y-6 relative">
-      {/* ── FLOATING ERROR NOTIFICATION ─────────────── */}
+      {/* ── FLOATING NOTIFICATIONS ─────────────── */}
       <AnimatePresence>
         {errorMsg && (
           <motion.div
+            key="error-toast"
             initial={{ opacity: 0, y: -50, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -20, scale: 0.9 }}
-            className="fixed top-6 left-1/2 -translate-x-1/2 z-50 w-full max-w-md"
+            className="fixed top-6 left-1/2 -translate-x-1/2 z-50 w-full max-w-md px-4"
           >
             <div className="bg-red-600 text-white shadow-2xl rounded-xl p-4 flex items-start gap-4">
               <AlertTriangle className="h-5 w-5 shrink-0 mt-0.5" />
               <div className="flex-1">
                 <h4 className="font-heading font-bold text-sm">Scan Failed</h4>
-                <p className="text-xs mt-1 text-white/90 leading-relaxed">
-                  {errorMsg}
-                </p>
+                <p className="text-xs mt-1 text-white/90 leading-relaxed">{errorMsg}</p>
               </div>
-              <button
-                onClick={() => setErrorMsg(null)}
-                className="text-white/50 hover:text-white transition-colors"
-              >
+              <button onClick={() => setErrorMsg(null)} className="text-white/50 hover:text-white transition-colors">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+          </motion.div>
+        )}
+        {toast && (
+          <motion.div
+            key="success-toast"
+            initial={{ opacity: 0, y: -50, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.9 }}
+            className="fixed top-6 left-1/2 -translate-x-1/2 z-50 w-full max-w-md px-4"
+          >
+            <div
+              className={`shadow-2xl rounded-xl p-4 flex items-start gap-4 ${
+                toast.type === "success"
+                  ? "bg-emerald-600 text-white"
+                  : "bg-orange-600 text-white"
+              }`}
+            >
+              <div className="flex-1">
+                <h4 className="font-heading font-bold text-sm">{toast.title}</h4>
+                <p className="text-xs mt-1 text-white/90 leading-relaxed">{toast.msg}</p>
+              </div>
+              <button onClick={() => setToast(null)} className="text-white/50 hover:text-white transition-colors">
                 <X className="h-5 w-5" />
               </button>
             </div>
@@ -558,16 +634,6 @@ export default function QaScannerPage() {
                 </div>
 
                 {/* Footer Actions */}
-                <div className="p-5 border-t border-white/10 bg-white/5 flex gap-3">
-                  <button className="flex-1 py-3 bg-white/10 hover:bg-white/20 text-white rounded-xl font-heading text-sm font-semibold transition-all flex items-center justify-center gap-2">
-                    <Download className="h-4 w-4" />
-                    Export Report
-                  </button>
-                  <button className="flex-1 py-3 bg-primary text-white rounded-xl font-heading text-sm font-semibold transition-all flex items-center justify-center gap-2 hover:bg-primary/90 shadow-lg shadow-primary/20">
-                    <Send className="h-4 w-4" />
-                    Forward to QA
-                  </button>
-                </div>
               </motion.div>
             )}
           </AnimatePresence>
