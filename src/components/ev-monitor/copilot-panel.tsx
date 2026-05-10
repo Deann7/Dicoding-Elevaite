@@ -3,7 +3,20 @@
 import { useState } from "react";
 import { Pallet } from "@/types/pallet";
 import { motion, AnimatePresence } from "framer-motion";
-import { Bot, X, Loader2, FileText, AlertTriangle, CheckCircle2, ChevronRight, Sparkles, Download, Thermometer, Droplets, Cpu } from "lucide-react";
+import {
+  Bot,
+  X,
+  Loader2,
+  FileText,
+  AlertTriangle,
+  CheckCircle2,
+  ChevronRight,
+  Sparkles,
+  Download,
+  Thermometer,
+  Droplets,
+  Cpu,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
@@ -69,7 +82,7 @@ export function CopilotPanel({ selectedPallet, onClose }: CopilotPanelProps) {
           </div>
           <button
             onClick={onClose}
-            className="text-white/40 hover:text-white transition-colors p-1"
+            className="text-white/40 hover:cursor-pointer hover:text-white transition-colors p-1"
           >
             <X className="h-5 w-5" />
           </button>
