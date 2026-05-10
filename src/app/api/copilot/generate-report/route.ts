@@ -37,18 +37,7 @@ export async function POST(req: NextRequest) {
     const apiVersion = "2025-01-01-preview";
 
     if (azureEndpoint && azureApiKey) {
-      // ── Verbose Connection Info ──────────────────────────────────────
-      console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-      console.log("🔵 [Azure AI] Initiating request...");
-      console.log("🔹 Endpoint   :", azureEndpoint);
-      console.log("🔹 Deployment :", deploymentName);
-      console.log("🔹 API Version:", apiVersion);
-      console.log("🔹 Api Key    :", azureApiKey);
-      console.log("🔹 Pallet     :", pallet.pallet_code);
-      console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-
       try {
-        console.log(azureApiKey);
         const client = new AzureOpenAI({
           endpoint: azureEndpoint,
           apiKey: azureApiKey,
@@ -81,10 +70,6 @@ export async function POST(req: NextRequest) {
         const report = aiResponse.choices[0]?.message?.content;
         if (report) {
           console.log("✅ [Azure AI] Report generated successfully.");
-          console.log(
-            "🔹 Tokens used:",
-            aiResponse.usage?.total_tokens ?? "N/A",
-          );
           return NextResponse.json({ report, pallet });
         }
 

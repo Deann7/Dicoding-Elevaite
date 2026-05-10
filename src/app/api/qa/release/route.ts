@@ -24,7 +24,6 @@ export async function POST(req: NextRequest) {
     }
 
     const userId = user.id;
-    console.log("[QA Release] Authenticated user:", userId);
 
     // Parse body
     const body = await req.json();
@@ -58,7 +57,6 @@ export async function POST(req: NextRequest) {
 
     if (existing) {
       // Pallet sudah ada — update statusnya
-      console.log("[QA Release] Pallet ditemukan, update status →", newStatus);
       const { data: updated, error: updateErr } = await supabase
         .from("pallets")
         .update({
