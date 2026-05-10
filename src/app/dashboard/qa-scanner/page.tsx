@@ -29,7 +29,11 @@ export default function QaScannerPage() {
   const [file, setFile] = useState<File | null>(null);
   const [scanResult, setScanResult] = useState<any>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [toast, setToast] = useState<{ type: "success" | "error"; title: string; msg: string } | null>(null);
+  const [toast, setToast] = useState<{
+    type: "success" | "error";
+    title: string;
+    msg: string;
+  } | null>(null);
 
   // Auto hide error message after 5 seconds
   useEffect(() => {
@@ -97,7 +101,8 @@ export default function QaScannerPage() {
       });
 
       const releaseData = await releaseRes.json();
-      if (!releaseRes.ok) throw new Error(releaseData.error || "Gagal menyimpan ke database");
+      if (!releaseRes.ok)
+        throw new Error(releaseData.error || "Gagal menyimpan ke database");
 
       // Trigger Teams webhook langsung jika REJECT
       let teamsAlertSent = false;
@@ -120,7 +125,10 @@ export default function QaScannerPage() {
           console.log("[QA Scanner] Teams webhook response:", teamsData);
           teamsAlertSent = teamsRes.ok && teamsData.success === true;
         } catch (teamsErr) {
-          console.error("[QA Scanner] Gagal memanggil Teams webhook:", teamsErr);
+          console.error(
+            "[QA Scanner] Gagal memanggil Teams webhook:",
+            teamsErr,
+          );
           teamsAlertSent = false;
         }
       }
@@ -131,13 +139,13 @@ export default function QaScannerPage() {
       if (data.metrics.isPass) {
         setToast({
           type: "success",
-          title: "✅ Data Berhasil Disimpan!",
+          title: "Data Berhasil Disimpan!",
           msg: `Pallet ${data.metrics.palletCode} telah masuk ke EV Battery Monitor dengan status OK / RELEASED.`,
         });
       } else {
         setToast({
           type: "error",
-          title: "🚨 Pallet Ditolak & Dikarantina",
+          title: "Pallet Ditolak & Dikarantina",
           msg: teamsAlertSent
             ? `Pallet ${data.metrics.palletCode} status REJECT. Data tersimpan & alert Teams berhasil terkirim.`
             : `Pallet ${data.metrics.palletCode} status REJECT. Data tersimpan, namun alert Teams GAGAL — cek MS_TEAMS_WEBHOOK_URL di .env & log terminal.`,
@@ -166,9 +174,14 @@ export default function QaScannerPage() {
               <AlertTriangle className="h-5 w-5 shrink-0 mt-0.5" />
               <div className="flex-1">
                 <h4 className="font-heading font-bold text-sm">Scan Failed</h4>
-                <p className="text-xs mt-1 text-white/90 leading-relaxed">{errorMsg}</p>
+                <p className="text-xs mt-1 text-white/90 leading-relaxed">
+                  {errorMsg}
+                </p>
               </div>
-              <button onClick={() => setErrorMsg(null)} className="text-white/50 hover:text-white transition-colors">
+              <button
+                onClick={() => setErrorMsg(null)}
+                className="text-white/50 hover:text-white transition-colors"
+              >
                 <X className="h-5 w-5" />
               </button>
             </div>
@@ -190,10 +203,17 @@ export default function QaScannerPage() {
               }`}
             >
               <div className="flex-1">
-                <h4 className="font-heading font-bold text-sm">{toast.title}</h4>
-                <p className="text-xs mt-1 text-white/90 leading-relaxed">{toast.msg}</p>
+                <h4 className="font-heading font-bold text-sm">
+                  {toast.title}
+                </h4>
+                <p className="text-xs mt-1 text-white/90 leading-relaxed">
+                  {toast.msg}
+                </p>
               </div>
-              <button onClick={() => setToast(null)} className="text-white/50 hover:text-white transition-colors">
+              <button
+                onClick={() => setToast(null)}
+                className="text-white/50 hover:text-white transition-colors"
+              >
                 <X className="h-5 w-5" />
               </button>
             </div>
