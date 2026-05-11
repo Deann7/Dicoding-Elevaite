@@ -119,16 +119,11 @@ export function PalletCard({ pallet, isSelected, onSelect }: PalletCardProps) {
         isSelected && `ring-2 ${config.selectedBorder} ring-offset-2`,
       )}
     >
-      {/* Left accent bar */}
       <div className={cn("absolute left-0 top-0 bottom-0 w-1 rounded-l-2xl", config.accentColor)} />
-
-      {/* Pulse overlay for critical */}
       {isCritical && (
         <div className="absolute inset-0 bg-red-500/[0.03] animate-pulse pointer-events-none" />
       )}
-
       <div className="pl-5 pr-5 pt-5 pb-4">
-        {/* ── Row 1: ID + Badge ────────────────── */}
         <div className="flex items-start justify-between mb-4">
           <div>
             <p className="text-[10px] font-data font-semibold text-slate-400 uppercase tracking-widest">Unit ID</p>
@@ -144,8 +139,6 @@ export function PalletCard({ pallet, isSelected, onSelect }: PalletCardProps) {
             {config.label}
           </Badge>
         </div>
-
-        {/* ── Row 2: Temperature ────────────────── */}
         <div className="space-y-3 mb-4">
           {/* Temperature */}
           <div>

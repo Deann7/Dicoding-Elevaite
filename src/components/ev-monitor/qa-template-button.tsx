@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 
 export function QaTemplateButton() {
   const handleDownload = () => {
-    // Generate a professional HTML layout that MS Word can open
     const htmlContent = `
       <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
       <head>

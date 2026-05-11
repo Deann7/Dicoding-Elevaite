@@ -1,5 +1,3 @@
-// Status sesuai CHECK constraint di tabel pallets:
-// OK = aman | ON HOLD = perlu inspeksi | REJECT = karantina | UNRELEASED = menunggu QA
 export type PalletStatus = "OK" | "ON HOLD" | "REJECT" | "UNRELEASED";
 
 export interface Pallet {
@@ -10,7 +8,7 @@ export interface Pallet {
   status: PalletStatus;
   location: string;
   cell_count: number;
-  vendor_name: string;   // Sesuai kolom DB: vendor_name (bukan vendor)
+  vendor_name: string;
   last_updated: string;
   alert_reason?: string | null;
 }

@@ -1,27 +1,9 @@
-#!/usr/bin/env node
-/**
- * ╔══════════════════════════════════════════════════╗
- * ║   ELEVAITE VOLT-GUARD — IoT Sensor Simulator    ║
- * ║   Triggers thermal anomaly on a target pallet   ║
- * ╚══════════════════════════════════════════════════╝
- *
- * Usage:
- *   node scripts/iot-simulator.js [pallet_code] [temperature]
- *
- * Examples:
- *   node scripts/iot-simulator.js B-102          # → triggers REJECT (48°C)
- *   node scripts/iot-simulator.js B-105 38       # → triggers ON HOLD (38°C)
- *   node scripts/iot-simulator.js B-101 22       # → resets back to OK (22°C)
- */
-
 const BASE_URL = process.env.API_BASE_URL || "http://localhost:3000";
 
 const palletCode = process.argv[2] || "B-102";
 const customTemp = process.argv[3] ? parseFloat(process.argv[3]) : null;
-
-// If no temperature provided, default to a CRITICAL thermal runaway scenario
 const temperature = customTemp ?? 48;
-const humidity = Math.floor(Math.random() * 20) + 60; // 60-80% humidity spike
+const humidity = Math.floor(Math.random() * 20) + 60;
 
 async function triggerAnomaly() {
   console.log("\n╔══════════════════════════════════════════════════╗");
