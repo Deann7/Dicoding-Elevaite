@@ -37,16 +37,6 @@ export async function POST(req: NextRequest) {
     const apiVersion = "2025-01-01-preview";
 
     if (azureEndpoint && azureApiKey) {
-      // ── Verbose Connection Info ──────────────────────────────────────
-      console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-      console.log("🔵 [Azure AI] Initiating request...");
-      console.log("🔹 Endpoint   :", azureEndpoint);
-      console.log("🔹 Deployment :", deploymentName);
-      console.log("🔹 API Version:", apiVersion);
-      console.log("🔹 Api Key    :", azureApiKey);
-      console.log("🔹 Pallet     :", pallet.pallet_code);
-      console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-
       try {
         console.log(azureApiKey);
         const client = new AzureOpenAI({
@@ -102,19 +92,6 @@ export async function POST(req: NextRequest) {
         const errBody = aiErr?.error
           ? JSON.stringify(aiErr.error, null, 2)
           : "(no structured body)";
-
-        console.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-        console.error("⚠️  AZURE OPENAI — VERBOSE ERROR LOG");
-        console.error("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-        console.error("🔹 Message     :", errMsg);
-        console.error("🔹 Error Type  :", errType);
-        console.error("🔹 HTTP Status :", errStatus);
-        console.error("🔹 Error Code  :", errCode);
-        console.error("🔹 Request ID  :", errReqId);
-        console.error("🔹 Deployment  :", deploymentName);
-        console.error("🔹 API Version :", apiVersion);
-        console.error("🔹 Endpoint    :", azureEndpoint);
-        console.error("🔹 Azure Body  :", errBody);
 
         // Log response headers if present
         if (aiErr?.headers) {
